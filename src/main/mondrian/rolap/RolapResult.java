@@ -368,6 +368,8 @@ public class RolapResult extends ResultBase {
                         new ValueCalc(
                             new DummyExp(new ScalarType()));
                     final TupleList tupleList1 = tupleList;
+
+
                     final Calc calc =
                         new GenericCalc(
                             new DummyExp(query.slicerCalc.getType()))
@@ -390,15 +392,21 @@ public class RolapResult extends ResultBase {
                                 return pos0.size();
                             }
                         };
-                    evaluator.addCalculation(
-                        new RolapTupleCalculation(hierarchyList, calc), true);
+//                    evaluator.addCalculation(
+//                        new RolapTupleCalculation(hierarchyList, calc), true);
 
                     // replace the slicer set with a placeholder to avoid
                     // interaction between the aggregate calc we just created
                     // and any calculated members that might be present in
                     // the slicer.
-                    setPlaceholderSlicerAxis(hierarchyList.get(0));
+                    // Arbitrarily picks the first dim of the first tuple
+                    // to use as placeholder.
+                    Member placeholder = setPlaceholderSlicerAxis(
+                        (RolapMember)tupleList.get(0).get(0), calc);
+                    evaluator.setContext(placeholder);
+
                 }
+
             } while (phase());
 
             /////////////////////////////////////////////////////////////////
@@ -517,13 +525,29 @@ public class RolapResult extends ResultBase {
      * This is used with compound slicer evaluation to avoid the slicer
      * tuple list from interacting with the aggregate calc which rolls up
      * the set.
-     * @param hierarchy the hierarchy to use for the placeholder slicer
      */
-    private void setPlaceholderSlicerAxis(RolapHierarchy hierarchy) {
-        Member nullMember = hierarchy.getNullMember();
+    private Member setPlaceholderSlicerAxis(RolapMember member,final  Calc calc) {
+        RolapMember placeholderMember;
+        RolapHierarchy hierarchy = member.getHierarchy();
+        if (hierarchy.getDimension().isMeasures()) {
+            placeholderMember = new RolapHierarchy.RolapCalculatedMeasure(hierarchy.getAllMember(),
+                (RolapLevel) hierarchy.getLevels()[0], UUID.randomUUID().toString(), null);
+        } else {
+            placeholderMember = new RolapCalculatedMember(hierarchy.getAllMember(),
+                (RolapLevel) hierarchy.getLevels()[0], UUID.randomUUID().toString(), null);
+        }
+
+        placeholderMember.setProperty(Property.FORMAT_STRING.getName(),
+            member.getPropertyValue(Property.FORMAT_STRING.getName()));
+        placeholderMember.setProperty(Property.FORMAT_EXP_PARSED.getName(),
+            member.getPropertyValue(Property.FORMAT_EXP_PARSED.getName()));
+        placeholderMember = new CompoundSlicerRolapMember(placeholderMember, calc);
+
         TupleList dummyList = TupleCollections.createList(1);
-        dummyList.addTuple(nullMember);
+        dummyList.addTuple(placeholderMember);
+
         this.slicerAxis = new RolapAxis(dummyList);
+        return placeholderMember;
     }
 
     private boolean phase() {
@@ -2105,6 +2129,39 @@ public class RolapResult extends ResultBase {
         return list;
     }
 
+    private class CompoundSlicerRolapMember extends DelegatingRolapMember
+    implements RolapMeasure {
+        private final Calc calc;
+        private ValueFormatter valueFormatter;
+
+        public CompoundSlicerRolapMember(RolapMember placeholderMember, Calc calc) {
+            super(placeholderMember);
+            if (placeholderMember.getDimension().isMeasures()) {
+                valueFormatter = ((RolapMeasure)placeholderMember).getFormatter();
+            }
+            this.calc = calc;
+        }
+
+        @Override
+        public boolean isEvaluated() {
+            return true;
+        }
+
+        @Override
+        public Calc getCompiledExpression(RolapEvaluatorRoot root) {
+            return calc;
+        }
+
+        @Override
+        public int getSolveOrder() {
+            return 0;
+        }
+
+        @Override
+        public ValueFormatter getFormatter() {
+            return valueFormatter;
+        }
+    }
 }
 
 // End RolapResult.java
