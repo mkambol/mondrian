@@ -392,8 +392,6 @@ public class RolapResult extends ResultBase {
                                 return pos0.size();
                             }
                         };
-//                    evaluator.addCalculation(
-//                        new RolapTupleCalculation(hierarchyList, calc), true);
 
                     // replace the slicer set with a placeholder to avoid
                     // interaction between the aggregate calc we just created
@@ -404,9 +402,7 @@ public class RolapResult extends ResultBase {
                     Member placeholder = setPlaceholderSlicerAxis(
                         (RolapMember)tupleList.get(0).get(0), calc);
                     evaluator.setContext(placeholder);
-
                 }
-
             } while (phase());
 
             /////////////////////////////////////////////////////////////////
@@ -526,22 +522,19 @@ public class RolapResult extends ResultBase {
      * tuple list from interacting with the aggregate calc which rolls up
      * the set.
      */
-    private Member setPlaceholderSlicerAxis(RolapMember member,final  Calc calc) {
-        RolapMember placeholderMember;
-        RolapHierarchy hierarchy = member.getHierarchy();
-        if (hierarchy.getDimension().isMeasures()) {
-            placeholderMember = new RolapHierarchy.RolapCalculatedMeasure(hierarchy.getAllMember(),
-                (RolapLevel) hierarchy.getLevels()[0], UUID.randomUUID().toString(), null);
-        } else {
-            placeholderMember = new RolapCalculatedMember(hierarchy.getAllMember(),
-                (RolapLevel) hierarchy.getLevels()[0], UUID.randomUUID().toString(), null);
-        }
+    private Member setPlaceholderSlicerAxis(
+        final RolapMember member, final Calc calc)
+    {
+        RolapMember placeholderMember =
+            new CompoundSlicerRolapMember(
+                (RolapMember)member.getHierarchy().getNullMember(), calc);
 
-        placeholderMember.setProperty(Property.FORMAT_STRING.getName(),
+        placeholderMember.setProperty(
+            Property.FORMAT_STRING.getName(),
             member.getPropertyValue(Property.FORMAT_STRING.getName()));
-        placeholderMember.setProperty(Property.FORMAT_EXP_PARSED.getName(),
+        placeholderMember.setProperty(
+            Property.FORMAT_EXP_PARSED.getName(),
             member.getPropertyValue(Property.FORMAT_EXP_PARSED.getName()));
-        placeholderMember = new CompoundSlicerRolapMember(placeholderMember, calc);
 
         TupleList dummyList = TupleCollections.createList(1);
         dummyList.addTuple(placeholderMember);
@@ -2130,21 +2123,25 @@ public class RolapResult extends ResultBase {
     }
 
     private class CompoundSlicerRolapMember extends DelegatingRolapMember
-    implements RolapMeasure {
+    implements RolapMeasure
+    {
         private final Calc calc;
-        private ValueFormatter valueFormatter;
 
-        public CompoundSlicerRolapMember(RolapMember placeholderMember, Calc calc) {
+        public CompoundSlicerRolapMember(
+            RolapMember placeholderMember, Calc calc)
+        {
             super(placeholderMember);
-            if (placeholderMember.getDimension().isMeasures()) {
-                valueFormatter = ((RolapMeasure)placeholderMember).getFormatter();
-            }
             this.calc = calc;
         }
 
         @Override
         public boolean isEvaluated() {
             return true;
+        }
+
+        @Override
+        public Exp getExpression() {
+            return new DummyExp(calc.getType());
         }
 
         @Override
@@ -2157,9 +2154,8 @@ public class RolapResult extends ResultBase {
             return 0;
         }
 
-        @Override
         public ValueFormatter getFormatter() {
-            return valueFormatter;
+            return null;
         }
     }
 }
