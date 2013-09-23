@@ -27,10 +27,13 @@ import org.apache.log4j.Logger;
 
 import org.olap4j.OlapConnection;
 
+import java.lang.management.ManagementFactory;
 import java.lang.ref.*;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.management.*;
 
 /**
  * Implementation of {@link mondrian.olap.MondrianServer}.
@@ -192,6 +195,7 @@ class MondrianServerImpl
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("new MondrianServer: id=" + id);
         }
+        registerMBean();
     }
 
     @Override
@@ -496,6 +500,28 @@ class MondrianServerImpl
 
         public MondrianServerXmlaRequest(Locus locus) {
             this.locus = locus;
+        }
+    }
+
+    /**
+     * Registers the MonitorImpl associated with this server
+     * as an MBean accessible via JMX.
+     */
+    private void registerMBean() {
+        MBeanServer mbs =
+            ManagementFactory.getPlatformMBeanServer();
+        try {
+            ObjectName mxbeanName = new ObjectName(
+                "mondrian.server:type=Server-" + id);
+            mbs.registerMBean(getMonitor(), mxbeanName);
+        } catch (MalformedObjectNameException e) {
+            LOGGER.warn("Failed to register JMX MBean", e);
+        } catch (NotCompliantMBeanException e) {
+            LOGGER.warn("Failed to register JMX MBean", e);
+        } catch (InstanceAlreadyExistsException e) {
+            LOGGER.warn("Failed to register JMX MBean", e);
+        } catch (MBeanRegistrationException e) {
+            LOGGER.warn("Failed to register JMX MBean", e);
         }
     }
 }

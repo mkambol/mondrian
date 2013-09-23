@@ -28,6 +28,15 @@ public class SqlStatementInfo extends Info {
         this.sqlStatementId = sqlStatementId;
         this.sql = sql;
     }
+
+    public long getSqlStatementId() {
+        return sqlStatementId;
+    }
+
+    public String getSql() {
+        return sql;
+    }
+
 }
 
 // End SqlStatementInfo.java

@@ -13,6 +13,7 @@ import mondrian.olap.MondrianProperties;
 import mondrian.olap.Util;
 import mondrian.rolap.RolapUtil;
 import mondrian.server.monitor.*;
+import mondrian.server.monitor.MonitorMXBean;
 import mondrian.util.*;
 
 import org.apache.log4j.Logger;
@@ -59,7 +60,7 @@ import java.util.concurrent.BlockingQueue;
  * </ul>
  */
 class MonitorImpl
-    implements Monitor
+    implements Monitor, MonitorMXBean
 {
     private static final Logger LOGGER = Logger.getLogger(MonitorImpl.class);
     private final Handler handler = new Handler();

@@ -43,6 +43,38 @@ public class ConnectionInfo extends Info {
         this.executeStartCount = executeStartCount;
         this.executeEndCount = executeEndCount;
     }
+
+    public int getStatementStartCount() {
+        return statementStartCount;
+    }
+
+    public int getCellCacheHitCount() {
+        return cellCacheHitCount;
+    }
+
+    public int getCellCacheRequestCount() {
+        return cellCacheRequestCount;
+    }
+
+    public int getCellCacheMissCount() {
+        return cellCacheMissCount;
+    }
+
+    public int getCellCachePendingCount() {
+        return cellCachePendingCount;
+    }
+
+    public int getStatementEndCount() {
+        return statementEndCount;
+    }
+
+    public int getExecuteStartCount() {
+        return executeStartCount;
+    }
+
+    public int getExecuteEndCount() {
+        return executeEndCount;
+    }
 }
 
 // End ConnectionInfo.java
