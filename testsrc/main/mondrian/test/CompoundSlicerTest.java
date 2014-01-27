@@ -1198,6 +1198,7 @@ public class CompoundSlicerTest extends FoodMartTestCase {
 
 
     public void testSlicerWithCalcMembers() throws Exception {
+        System.out.println("testSlicerWithCalcMembers");
         final TestContext testContext = TestContext.instance();
         //2 calc mems
         testContext.assertQueryReturns(

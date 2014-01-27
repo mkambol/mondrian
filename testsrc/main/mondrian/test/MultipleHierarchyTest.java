@@ -50,6 +50,7 @@ public class MultipleHierarchyTest extends BatchTestCase {
     }
 
     public void testWeekly2() {
+        System.out.println("testWeekly2");
         // When the context is one hierarchy,
         // the current member of other hierarchy must be its default member.
         assertQueryReturns(

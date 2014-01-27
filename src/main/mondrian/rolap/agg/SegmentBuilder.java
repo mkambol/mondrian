@@ -8,6 +8,7 @@
 */
 package mondrian.rolap.agg;
 
+import com.jcraft.jsch.Logger;
 import mondrian.olap.Aggregator;
 import mondrian.olap.Util;
 import mondrian.rolap.*;
@@ -33,6 +34,8 @@ import java.util.Map.Entry;
  * @author LBoudreau
  */
 public class SegmentBuilder {
+    private static final org.apache.log4j.Logger LOGGER =
+        org.apache.log4j.Logger.getLogger(SegmentBuilder.class);
     /**
      * Converts a segment plus a {@link SegmentBody} into a
      * {@link mondrian.rolap.agg.SegmentWithData}.
@@ -191,6 +194,21 @@ public class SegmentBuilder {
             boolean lostPredicate;
         }
         assert allHeadersHaveSameDimensionality(map.keySet());
+
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Rolling up segments:  ");
+            for (SegmentHeader header : map.keySet()) {
+                LOGGER.debug("Header:");
+                LOGGER.debug(header);
+                System.out.println("++++++++++++++++++++");
+                System.out.println(header);
+                System.out.println("++++++++++++++++++++");
+                LOGGER.debug("Body:");
+                LOGGER.debug(map.get(header));
+            }
+            LOGGER.debug("---------------");
+        }
+
 
         // store the map values in a list to assure the first header
         // loaded here is consistent w/ the first segment processed below.

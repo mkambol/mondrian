@@ -250,114 +250,114 @@ public class Main extends TestSuite {
             }
             addTest(suite, VirtualCubeTest.class);
             addTest(suite, ParameterTest.class);
-            addTest(suite, AccessControlTest.class);
-            addTest(suite, ParserTest.class);
-            addTest(suite, CustomizedParserTest.class);
-            addTest(suite, SolveOrderScopeIsolationTest.class);
-            addTest(suite, ParentChildHierarchyTest.class);
-            addTest(suite, Olap4jTckTest.class, "suite");
-            addTest(suite, MondrianServerTest.class);
-            addTest(suite, XmlaBasicTest.class);
-            addTest(suite, XmlaMetaDataConstraintsTest.class);
-            addTest(suite, XmlaErrorTest.class);
-            addTest(suite, XmlaExcel2000Test.class);
-            addTest(suite, XmlaExcelXPTest.class);
-            addTest(suite, XmlaExcel2007Test.class);
-            addTest(suite, XmlaCognosTest.class);
-            addTest(suite, XmlaTabularTest.class);
-            addTest(suite, XmlaTests.class);
-            addTest(suite, DynamicDatasourceXmlaServletTest.class);
-            addTest(suite, XmlaTest.class, "suite");
-            if (isRunOnce()) {
-                addTest(suite, TestCalculatedMembers.class);
-            }
-            addTest(suite, CompoundSlicerTest.class);
-            addTest(suite, RaggedHierarchyTest.class);
-            addTest(suite, NonEmptyPropertyForAllAxisTest.class);
-            addTest(suite, InlineTableTest.class);
-            addTest(suite, CompatibilityTest.class);
-            addTest(suite, CaptionTest.class);
-            addTest(suite, UdfTest.class);
-            addTest(suite, NullValueTest.class);
-            addTest(suite, NamedSetTest.class);
-            addTest(suite, NativeSetEvaluationTest.class);
-            addTest(suite, PropertiesTest.class);
-            addTest(suite, MultipleHierarchyTest.class);
-            addTest(suite, I18nTest.class);
-            addTest(suite, FormatTest.class);
-            addTest(suite, ParallelTest.class);
-            addTest(suite, SchemaVersionTest.class);
-            addTest(suite, SchemaTest.class);
-            addTest(suite, PerformanceTest.class);
-            // GroupingSetQueryTest must be run before any test derived from
-            // CsvDBTestCase
-            addTest(suite, GroupingSetQueryTest.class);
-            addTest(suite, CmdRunnerTest.class);
-            addTest(suite, DataSourceChangeListenerTest.class);
-            addTest(suite, ModulosTest.class);
-            addTest(suite, PrimeFinderTest.class);
-            addTest(suite, CellKeyTest.class);
-            addTest(suite, RolapAxisTest.class);
-            addTest(suite, CrossJoinTest.class);
-            if (Bug.BugMondrian503Fixed) {
-                addTest(suite, RolapResultTest.class);
-            }
-            addTest(suite, ConstantCalcTest.class);
-            addTest(suite, SharedDimensionTest.class);
-            addTest(suite, CellPropertyTest.class);
-            addTest(suite, QueryTest.class);
-            addTest(suite, RolapSchemaReaderTest.class);
-            addTest(suite, RolapCubeTest.class);
-            addTest(suite, RolapStarTest.class);
-            addTest(suite, RolapSchemaPoolTest.class);
-            addTest(suite, NullMemberRepresentationTest.class);
-            addTest(suite, IgnoreUnrelatedDimensionsTest.class);
-            addTest(
-                suite,
-                IgnoreMeasureForNonJoiningDimensionInAggregationTest.class);
-            addTest(suite, SetFunDefTest.class);
-            addTest(suite, VisualTotalsTest.class);
-            addTest(suite, AggregationOnDistinctCountMeasuresTest.class);
-            addTest(suite, NonCollapsedAggTest.class);
-            addTest(suite, SpeciesNonCollapsedAggTest.class);
-            addTest(suite, UsagePrefixTest.class);
-            addTest(suite, BitKeyTest.class);
-            addTest(suite, TypeTest.class);
-            addTest(suite, SteelWheelsSchemaTest.class);
-            addTest(suite, MultipleColsInTupleAggTest.class);
-            addTest(suite, DynamicSchemaProcessorTest.class);
-            addTest(suite, MonitorTest.class);
-            addTest(suite, DeadlockTest.class);
-
-            addTest(suite, BlockingHashMapTest.class);
-            addTest(suite, CodeComplianceTest.class);
-
-            boolean testNonEmpty = isRunOnce();
-            if (!MondrianProperties.instance().EnableNativeNonEmpty.get()) {
-                testNonEmpty = false;
-            }
-            if (!MondrianProperties.instance().EnableNativeCrossJoin.get()) {
-                testNonEmpty = false;
-            }
-            if (testNonEmpty) {
-                addTest(suite, NonEmptyTest.class);
-                addTest(suite, FilterTest.class);
-                addTest(suite, NativizeSetFunDefTest.class);
-            } else {
-                logger.warn("skipping NonEmptyTests");
-            }
-
-            addTest(suite, FastBatchingCellReaderTest.class);
-            addTest(suite, SqlQueryTest.class);
-
-            if (MondrianProperties.instance().EnableNativeCrossJoin.get()) {
-                addTest(suite, BatchedFillTest.class, "suite");
-            } else {
-                logger.warn("skipping BatchedFillTests");
-            }
-
-            // Must be the last test.
-            addTest(suite, TerminatorTest.class);
+//            addTest(suite, AccessControlTest.class);
+//            addTest(suite, ParserTest.class);
+//            addTest(suite, CustomizedParserTest.class);
+//            addTest(suite, SolveOrderScopeIsolationTest.class);
+//            addTest(suite, ParentChildHierarchyTest.class);
+//            addTest(suite, Olap4jTckTest.class, "suite");
+//            addTest(suite, MondrianServerTest.class);
+//            addTest(suite, XmlaBasicTest.class);
+//            addTest(suite, XmlaMetaDataConstraintsTest.class);
+//            addTest(suite, XmlaErrorTest.class);
+//            addTest(suite, XmlaExcel2000Test.class);
+//            addTest(suite, XmlaExcelXPTest.class);
+//            addTest(suite, XmlaExcel2007Test.class);
+//            addTest(suite, XmlaCognosTest.class);
+//            addTest(suite, XmlaTabularTest.class);
+//            addTest(suite, XmlaTests.class);
+//            addTest(suite, DynamicDatasourceXmlaServletTest.class);
+//            addTest(suite, XmlaTest.class, "suite");
+//            if (isRunOnce()) {
+//                addTest(suite, TestCalculatedMembers.class);
+//            }
+//            addTest(suite, CompoundSlicerTest.class);
+//            addTest(suite, RaggedHierarchyTest.class);
+//            addTest(suite, NonEmptyPropertyForAllAxisTest.class);
+//            addTest(suite, InlineTableTest.class);
+//            addTest(suite, CompatibilityTest.class);
+//            addTest(suite, CaptionTest.class);
+//            addTest(suite, UdfTest.class);
+//            addTest(suite, NullValueTest.class);
+//            addTest(suite, NamedSetTest.class);
+//            addTest(suite, NativeSetEvaluationTest.class);
+//            addTest(suite, PropertiesTest.class);
+//            addTest(suite, MultipleHierarchyTest.class);
+//            addTest(suite, I18nTest.class);
+//            addTest(suite, FormatTest.class);
+//            addTest(suite, ParallelTest.class);
+//            addTest(suite, SchemaVersionTest.class);
+//            addTest(suite, SchemaTest.class);
+//            addTest(suite, PerformanceTest.class);
+//            // GroupingSetQueryTest must be run before any test derived from
+//            // CsvDBTestCase
+//            addTest(suite, GroupingSetQueryTest.class);
+//            addTest(suite, CmdRunnerTest.class);
+//            addTest(suite, DataSourceChangeListenerTest.class);
+//            addTest(suite, ModulosTest.class);
+//            addTest(suite, PrimeFinderTest.class);
+//            addTest(suite, CellKeyTest.class);
+//            addTest(suite, RolapAxisTest.class);
+//            addTest(suite, CrossJoinTest.class);
+//            if (Bug.BugMondrian503Fixed) {
+//                addTest(suite, RolapResultTest.class);
+//            }
+//            addTest(suite, ConstantCalcTest.class);
+//            addTest(suite, SharedDimensionTest.class);
+//            addTest(suite, CellPropertyTest.class);
+//            addTest(suite, QueryTest.class);
+//            addTest(suite, RolapSchemaReaderTest.class);
+//            addTest(suite, RolapCubeTest.class);
+//            addTest(suite, RolapStarTest.class);
+//            addTest(suite, RolapSchemaPoolTest.class);
+//            addTest(suite, NullMemberRepresentationTest.class);
+//            addTest(suite, IgnoreUnrelatedDimensionsTest.class);
+//            addTest(
+//                suite,
+//                IgnoreMeasureForNonJoiningDimensionInAggregationTest.class);
+//            addTest(suite, SetFunDefTest.class);
+//            addTest(suite, VisualTotalsTest.class);
+//            addTest(suite, AggregationOnDistinctCountMeasuresTest.class);
+//            addTest(suite, NonCollapsedAggTest.class);
+//            addTest(suite, SpeciesNonCollapsedAggTest.class);
+//            addTest(suite, UsagePrefixTest.class);
+//            addTest(suite, BitKeyTest.class);
+//            addTest(suite, TypeTest.class);
+//            addTest(suite, SteelWheelsSchemaTest.class);
+//            addTest(suite, MultipleColsInTupleAggTest.class);
+//            addTest(suite, DynamicSchemaProcessorTest.class);
+//            addTest(suite, MonitorTest.class);
+//            addTest(suite, DeadlockTest.class);
+//
+//            addTest(suite, BlockingHashMapTest.class);
+//            addTest(suite, CodeComplianceTest.class);
+//
+//            boolean testNonEmpty = isRunOnce();
+//            if (!MondrianProperties.instance().EnableNativeNonEmpty.get()) {
+//                testNonEmpty = false;
+//            }
+//            if (!MondrianProperties.instance().EnableNativeCrossJoin.get()) {
+//                testNonEmpty = false;
+//            }
+//            if (testNonEmpty) {
+//                addTest(suite, NonEmptyTest.class);
+//                addTest(suite, FilterTest.class);
+//                addTest(suite, NativizeSetFunDefTest.class);
+//            } else {
+//                logger.warn("skipping NonEmptyTests");
+//            }
+//
+//            addTest(suite, FastBatchingCellReaderTest.class);
+//            addTest(suite, SqlQueryTest.class);
+//
+//            if (MondrianProperties.instance().EnableNativeCrossJoin.get()) {
+//                addTest(suite, BatchedFillTest.class, "suite");
+//            } else {
+//                logger.warn("skipping BatchedFillTests");
+//            }
+//
+//            // Must be the last test.
+//            addTest(suite, TerminatorTest.class);
         }
 
         if (testName != null && !testName.equals("")) {

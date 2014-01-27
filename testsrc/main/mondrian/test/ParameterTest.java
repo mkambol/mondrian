@@ -989,6 +989,7 @@ public class ParameterTest extends FoodMartTestCase {
      * Tests a parameter whose type is a set of members.
      */
     public void testParamSet() {
+        System.out.println("testParamSet()");
         Connection connection = getTestContext().getConnection();
         try {
             String mdx =

@@ -109,9 +109,17 @@
    <category name="mondrian.sql">
       <priority value="DEBUG"/>
       <appender-ref ref="SQLLOG"/>
+
    </category>
 
-   <!-- ======================= -->
+    <category name="mondrian.rolap.agg.SegmentBuilder">
+        <priority value="DEBUG"/>
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </category>
+
+
+    <!-- ======================= -->
    <!-- Setup the Root category -->
    <!-- ======================= -->
 

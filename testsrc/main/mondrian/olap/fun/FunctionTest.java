@@ -1025,6 +1025,7 @@ public class FunctionTest extends FoodMartTestCase {
     }
 
     public void testClosingPeriodLevel() {
+        System.out.println("testClosingPeriodLevel");
         getTestContext().assertMemberExprDependsOn(
             "ClosingPeriod([Time].[Year])", "{[Time]}");
         getTestContext().assertMemberExprDependsOn(
@@ -2131,6 +2132,7 @@ public class FunctionTest extends FoodMartTestCase {
      * Tests NamedSet.CurrentOrdinal combined with the Order function.
      */
     public void testNamedSetCurrentOrdinalWithOrder() {
+        System.out.println("testNamedSetCurrentOrdinalWithOrder");
         // The <Named Set>.CurrentOrdinal only works correctly when named sets
         // are evaluated as iterables, and JDK 1.4 only supports lists.
         if (Util.Retrowoven) {
@@ -3500,6 +3502,7 @@ public class FunctionTest extends FoodMartTestCase {
      * Tests the AS operator, that gives an expression an alias.
      */
     public void testAs() {
+        System.out.println("testAs");
         assertAxisReturns(
             "Filter([Customers].Children as t,\n"
             + "t.Current.Name = 'USA')",
