@@ -13,6 +13,7 @@ package mondrian.olap.fun;
 
 import mondrian.olap.*;
 import mondrian.resource.MondrianResource;
+import mondrian.rolap.agg.SegmentBuilder;
 import mondrian.test.FoodMartTestCase;
 import mondrian.test.TestContext;
 import mondrian.udf.*;
@@ -37,6 +38,9 @@ import java.util.*;
 public class FunctionTest extends FoodMartTestCase {
 
     private static final Logger LOGGER = Logger.getLogger(FunctionTest.class);
+
+    private static final org.apache.log4j.Logger LOGGER2 =
+        org.apache.log4j.Logger.getLogger(SegmentBuilder.class);
 
     private static final String months =
         "[Time].[1997].[Q1].[1]\n"
@@ -1025,7 +1029,7 @@ public class FunctionTest extends FoodMartTestCase {
     }
 
     public void testClosingPeriodLevel() {
-        System.out.println("testClosingPeriodLevel");
+        LOGGER2.debug("testClosingPeriodLevel");
         getTestContext().assertMemberExprDependsOn(
             "ClosingPeriod([Time].[Year])", "{[Time]}");
         getTestContext().assertMemberExprDependsOn(
@@ -2132,7 +2136,7 @@ public class FunctionTest extends FoodMartTestCase {
      * Tests NamedSet.CurrentOrdinal combined with the Order function.
      */
     public void testNamedSetCurrentOrdinalWithOrder() {
-        System.out.println("testNamedSetCurrentOrdinalWithOrder");
+        LOGGER2.debug("testNamedSetCurrentOrdinalWithOrder");
         // The <Named Set>.CurrentOrdinal only works correctly when named sets
         // are evaluated as iterables, and JDK 1.4 only supports lists.
         if (Util.Retrowoven) {
@@ -3502,7 +3506,7 @@ public class FunctionTest extends FoodMartTestCase {
      * Tests the AS operator, that gives an expression an alias.
      */
     public void testAs() {
-        System.out.println("testAs");
+        LOGGER2.debug("testAs");
         assertAxisReturns(
             "Filter([Customers].Children as t,\n"
             + "t.Current.Name = 'USA')",
@@ -3628,6 +3632,7 @@ public class FunctionTest extends FoodMartTestCase {
             + "   Descendants(t, [Time].[Month])} on 1\n"
             + "from [Sales]",
             "Argument to Descendants function must be a member or set of members, not a set of tuples");
+        LOGGER2.debug("END--------testAs");
     }
 
     public void testAs2() {

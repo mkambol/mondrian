@@ -11,6 +11,7 @@ package mondrian.test;
 
 import mondrian.olap.MondrianProperties;
 import mondrian.rolap.BatchTestCase;
+import mondrian.rolap.agg.SegmentBuilder;
 import mondrian.spi.Dialect;
 
 /**
@@ -49,8 +50,10 @@ public class MultipleHierarchyTest extends BatchTestCase {
         }
     }
 
+    private static final org.apache.log4j.Logger LOGGER =
+        org.apache.log4j.Logger.getLogger(SegmentBuilder.class);
     public void testWeekly2() {
-        System.out.println("testWeekly2");
+        LOGGER.debug("---------testWeekly2");
         // When the context is one hierarchy,
         // the current member of other hierarchy must be its default member.
         assertQueryReturns(
@@ -86,6 +89,7 @@ public class MultipleHierarchyTest extends BatchTestCase {
             + "Row #3: 72,024\n"
             + "Row #3: [Time].[Weekly].[All Weeklys]\n"
             + "Row #3: [Time].[1997].[Q4]\n");
+        LOGGER.debug("testWeekly2");
     }
 
     public void testMultipleMembersOfSameDimensionInSlicerFails() {

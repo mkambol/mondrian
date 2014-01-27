@@ -9,6 +9,7 @@
 
 package mondrian.test;
 
+import mondrian.rolap.agg.SegmentBuilder;
 import mondrian.util.Bug;
 
 /**
@@ -1197,8 +1198,10 @@ public class CompoundSlicerTest extends FoodMartTestCase {
 
 
 
+    private static final org.apache.log4j.Logger LOGGER =
+        org.apache.log4j.Logger.getLogger(SegmentBuilder.class);
     public void testSlicerWithCalcMembers() throws Exception {
-        System.out.println("testSlicerWithCalcMembers");
+        LOGGER.debug("----testSlicerWithCalcMembers");
         final TestContext testContext = TestContext.instance();
         //2 calc mems
         testContext.assertQueryReturns(
@@ -1262,6 +1265,7 @@ public class CompoundSlicerTest extends FoodMartTestCase {
             + "{[Measures].[Profit], [Store].[USA].[CA]}\n"
             + "{[Measures].[Profit], [Store].[USA].[OR]}\n"
             + "$181,141.98");
+        LOGGER.debug("END----testSlicerWithCalcMembers");
     }
 }
 

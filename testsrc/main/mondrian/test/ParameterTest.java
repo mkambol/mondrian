@@ -16,6 +16,7 @@ import mondrian.rolap.RolapConnectionProperties;
 
 import junit.framework.Assert;
 
+import mondrian.rolap.agg.SegmentBuilder;
 import org.eigenbase.util.property.Property;
 
 import org.olap4j.impl.Olap4jUtil;
@@ -985,11 +986,13 @@ public class ParameterTest extends FoodMartTestCase {
         }
     }
 
+    private static final org.apache.log4j.Logger LOGGER =
+        org.apache.log4j.Logger.getLogger(SegmentBuilder.class);
     /**
      * Tests a parameter whose type is a set of members.
      */
     public void testParamSet() {
-        System.out.println("testParamSet()");
+        LOGGER.debug("testParamSet()");
         Connection connection = getTestContext().getConnection();
         try {
             String mdx =
@@ -1032,6 +1035,7 @@ public class ParameterTest extends FoodMartTestCase {
                 TestContext.toString(result));
         } finally {
             connection.close();
+            LOGGER.debug("****END testParamSet()");
         }
     }
 
