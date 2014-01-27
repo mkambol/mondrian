@@ -25,8 +25,8 @@
    <appender name="FILE" class="org.apache.log4j.RollingFileAppender">
      <param name="File" value="mondrian.log"/>
      <param name="Append" value="false"/>
-     <param name="MaxFileSize" value="500MB"/>
-     <param name="MaxBackupIndex" value="1"/>
+     <param name="MaxFileSize" value="900KB"/>
+     <param name="MaxBackupIndex" value="20"/>
 
      <layout class="org.apache.log4j.PatternLayout">
        <param name="ConversionPattern" value="%d %-5p [%c] %m%n"/>
@@ -109,8 +109,9 @@
    <category name="mondrian.sql">
       <priority value="DEBUG"/>
       <appender-ref ref="SQLLOG"/>
-   -->
+
    </category>
+   -->
 
     <category name="mondrian.rolap.agg.SegmentBuilder">
         <priority value="DEBUG"/>
