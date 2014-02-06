@@ -5,10 +5,9 @@
 // You must accept the terms of that agreement to use this software.
 //
 // Copyright (C) 2003-2005 Julian Hyde
-// Copyright (C) 2005-2012 Pentaho
+// Copyright (C) 2005-2014 Pentaho
 // All Rights Reserved.
 */
-
 package mondrian.rolap;
 
 import mondrian.olap.*;
@@ -16,7 +15,12 @@ import mondrian.resource.MondrianResource;
 import mondrian.rolap.sql.MemberChildrenConstraint;
 import mondrian.rolap.sql.TupleConstraint;
 
+import org.apache.commons.collections.Predicate;
+
 import java.util.*;
+
+import static org.apache.commons.collections.CollectionUtils.*;
+
 
 /**
  * A <code>RestrictedMemberReader</code> reads only the members of a hierarchy
@@ -123,38 +127,17 @@ class RestrictedMemberReader extends DelegatingMemberReader {
 
     private Map<RolapMember, Access> processMemberChildren(
         List<RolapMember> fullChildren,
-        List<RolapMember> children,
+        final List<RolapMember> children,
         MemberChildrenConstraint constraint)
     {
-        // todo: optimize if parentMember is beyond last level
-        List<RolapMember> grandChildren = null;
-        Map<RolapMember, Access> memberToAccessMap =
+        final Map<RolapMember, Access> memberToAccessMap =
             new LinkedHashMap<RolapMember, Access>();
-        for (int i = 0; i < fullChildren.size(); i++) {
-            RolapMember member = fullChildren.get(i);
-            // If a child is hidden (due to raggedness) include its children.
-            // This must be done before applying access-control.
-            if (ragged) {
-                if (member.isHidden()) {
-                    // Replace this member with all of its children.
-                    // They might be hidden too, but we'll get to them in due
-                    // course. They also might be access-controlled; that's why
-                    // we deal with raggedness before we apply access-control.
-                    fullChildren.remove(i);
-                    if (grandChildren == null) {
-                        grandChildren = new ArrayList<RolapMember>();
-                    } else {
-                        grandChildren.clear();
-                    }
-                    memberReader.getMemberChildren(
-                        member, grandChildren, constraint);
-                    fullChildren.addAll(i, grandChildren);
-                    // Step back to before the first child we just inserted,
-                    // and go through the loop again.
-                    --i;
-                    continue;
-                }
-            }
+
+        if (ragged) {
+            collapseHiddenMembers(fullChildren, constraint);
+        }
+
+        for (RolapMember member : fullChildren) {
             // Filter out children which are invisible because of
             // access-control.
             final Access access;
@@ -173,6 +156,54 @@ class RestrictedMemberReader extends DelegatingMemberReader {
             }
         }
         return memberToAccessMap;
+    }
+
+    private List<RolapMember> selectHiddenMembers(List<RolapMember> members) {
+        return (List<RolapMember>)select(
+            members, new Predicate() {
+            public boolean evaluate(Object member) {
+                return ((RolapMember) member).isHidden();
+            }});
+    }
+
+    /**
+     * Replace any hidden members inline with their children.
+     * Called recursively in case any of those children are themselves hidden.
+     */
+    private void collapseHiddenMembers(
+        List<RolapMember> members, MemberChildrenConstraint constraint)
+    {
+        List<RolapMember> hiddenMembers = selectHiddenMembers(members);
+        if (hiddenMembers.size() == 0) {
+            return;
+        }
+        List<RolapMember> childrenOfHiddenMems = new ArrayList<RolapMember>();
+        memberReader.getMemberChildren(
+            hiddenMembers,  childrenOfHiddenMems, constraint);
+        Map<RolapMember, List<RolapMember>> map =
+            mapChildrenToParents(childrenOfHiddenMems);
+        for (RolapMember parent : hiddenMembers) {
+            int parentIndex = members.indexOf(parent);
+            members.remove(parentIndex);
+            if (map.get(parent) != null) {
+                members.addAll(parentIndex, map.get(parent));
+            }
+        }
+        collapseHiddenMembers(members, constraint);
+    }
+
+    private Map<RolapMember, List<RolapMember>> mapChildrenToParents(
+        List<RolapMember> members)
+    {
+        Map<RolapMember, List<RolapMember>> map = new
+            HashMap<RolapMember, List<RolapMember>>();
+        for (RolapMember member : members) {
+            if (!map.containsKey(member.getParentMember())) {
+                map.put(member.getParentMember(), new ArrayList<RolapMember>());
+            }
+            map.get(member.getParentMember()).add(member);
+        }
+        return map;
     }
 
     /**
