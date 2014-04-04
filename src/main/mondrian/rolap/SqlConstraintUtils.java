@@ -56,55 +56,12 @@ public class SqlConstraintUtils {
         boolean restrictMemberTypes)
     {
         // Add constraint using the current evaluator context
-        List<RolapMember> members = Arrays.asList(evaluator.getNonAllMembers());
-        if (queryBuilder.fact != null) {
-            setMeasureForCellRequest(members, queryBuilder.fact);
-        }
 
-        if (restrictMemberTypes) {
-            if (containsCalculatedMember(members)) {
-                throw Util.newInternal(
-                    "can not restrict SQL to calculated Members");
-            }
-            if (hasMultiPositionSlicer(evaluator)) {
-                throw Util.newInternal(
-                    "can not restrict SQL to context with multi-position slicer");
-            }
-        } else {
-            members = new ArrayList<RolapMember>(members);
-            removeCalculatedAndDefaultMembers(members);
-            removeMultiPositionSlicerMembers(members, evaluator);
-        }
-
-        // get the constrained columns and their values
-        final CellRequest request =
-            RolapAggregationManager.makeRequest(
-                members.toArray(new RolapMember[members.size()]));
-        if (request == null) {
-            if (restrictMemberTypes) {
-                throw Util.newInternal("CellRequest is null - why?");
-            }
-            // One or more of the members was null or calculated, so the
-            // request is impossible to satisfy.
-            return;
-        }
-        RolapStar.Column[] columns = request.getConstrainedColumns();
-        Object[] values = request.getSingleValues();
-
-        if (starSet.getAggMeasureGroup() != null) {
-            RolapGalaxy galaxy = evaluator.getCube().galaxy;
-            @SuppressWarnings("unchecked")
-            final AggregationManager.StarConverter starConverter =
-                new BatchLoader.StarConverterImpl(
-                    galaxy,
-                    starSet.getStar(),
-                    starSet.getAggMeasureGroup().getStar(),
-                    Collections.EMPTY_MAP);
-            columns = starConverter.convertColumnArray(columns);
-        }
+      List<Pair<RolapStar.Column, Object>> columnsValues =
+        getColumnValues( queryBuilder.fact, evaluator, restrictMemberTypes, starSet );
 
         // add constraints to where
-        addColumnValueConstraints(queryBuilder, Pair.zip(columns, values));
+        addColumnValueConstraints(queryBuilder, columnsValues );
 
         // add role constraints to where
         addRoleAccessConstraints(
@@ -112,6 +69,58 @@ public class SqlConstraintUtils {
             starSet,
             restrictMemberTypes,
             evaluator);
+    }
+
+
+    public static List<Pair<RolapStar.Column, Object>> getColumnValues( RolapMeasureGroup fact, RolapEvaluator evaluator,
+                                                                        boolean restrictMemberTypes, RolapStarSet starSet ) {
+      List<RolapMember> members = Arrays.asList(evaluator.getNonAllMembers());
+      if (fact != null) {
+        setMeasureForCellRequest(members, fact);
+      }
+
+      if (restrictMemberTypes) {
+        if (containsCalculatedMember(members)) {
+          throw Util.newInternal(
+            "can not restrict SQL to calculated Members");
+        }
+        if (hasMultiPositionSlicer(evaluator)) {
+          throw Util.newInternal(
+            "can not restrict SQL to context with multi-position slicer");
+        }
+      } else {
+        members = new ArrayList<RolapMember>(members);
+        removeCalculatedAndDefaultMembers(members);
+        removeMultiPositionSlicerMembers(members, evaluator);
+      }
+
+      // get the constrained columns and their values
+      final CellRequest request =
+        RolapAggregationManager.makeRequest(
+          members.toArray(new RolapMember[members.size()]));
+      if (request == null) {
+        if (restrictMemberTypes) {
+          throw Util.newInternal("CellRequest is null - why?");
+        }
+        // One or more of the members was null or calculated, so the
+        // request is impossible to satisfy.
+        return null;
+      }
+      RolapStar.Column[] columns = request.getConstrainedColumns();
+      Object[] values = request.getSingleValues();
+
+      if (starSet.getAggMeasureGroup() != null) {
+        RolapGalaxy galaxy = evaluator.getCube().galaxy;
+        @SuppressWarnings("unchecked")
+        final AggregationManager.StarConverter starConverter =
+          new BatchLoader.StarConverterImpl(
+            galaxy,
+            starSet.getStar(),
+            starSet.getAggMeasureGroup().getStar(),
+            Collections.EMPTY_MAP);
+        columns = starConverter.convertColumnArray(columns);
+      }
+      return Pair.zip(columns, values);
     }
 
     /**

@@ -24,7 +24,7 @@ import java.util.Arrays;
  * @author avix
  */
 class ChildByNameConstraint extends DefaultMemberChildrenConstraint {
-    private final String childName;
+    final String childName;
     private final Object cacheKey;
 
     /**
