@@ -12,8 +12,7 @@
 package mondrian.rolap;
 
 import mondrian.olap.*;
-import mondrian.olap.fun.AggregateFunDef;
-import mondrian.olap.fun.ParenthesesFunDef;
+import mondrian.olap.fun.*;
 import mondrian.resource.MondrianResource;
 import mondrian.rolap.agg.*;
 import mondrian.rolap.aggmatcher.AggStar;
@@ -1718,6 +1717,31 @@ public class SqlConstraintUtils {
 
         return condition;
     }
+
+    public static boolean measuresConflictWithMembers(
+        Set<Member> measuresMembers, Set<Member> membersOuter) {
+        Set<Member> dimMembers = new HashSet<Member>();
+
+        MemberVisitor memberVisitor =
+            new MemberVisitor(dimMembers);
+        for (Member m : measuresMembers) {
+            if (m.isCalculated()) {
+                Exp exp = m.getExpression();
+                exp.accept(memberVisitor);
+            }
+        }
+        for (Member outerMember : membersOuter) {
+            for(Member member : dimMembers) {
+                if (!outerMember.isAll()
+                    && !(!member.getHierarchy().equals(outerMember.getHierarchy())
+                     || member.isChildOrEqualTo(outerMember))) {
+                              return true;
+                  }
+            }
+        }
+        return false;
+    }
+
 }
 
 // End SqlConstraintUtils.java

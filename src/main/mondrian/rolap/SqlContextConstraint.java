@@ -91,6 +91,12 @@ public class SqlContextConstraint
             query.setBaseCubes(baseCubeList);
         }
 
+        if (SqlConstraintUtils.measuresConflictWithMembers(
+            context.getQuery().getMeasuresMembers(),
+            new HashSet(Arrays.asList(context.getMembers())) ) ) {
+            return false;
+        }
+
         // may return more rows than requested?
         if (!strict) {
             return true;

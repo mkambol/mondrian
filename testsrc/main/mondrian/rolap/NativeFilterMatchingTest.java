@@ -363,6 +363,9 @@ public class NativeFilterMatchingTest extends BatchTestCase {
 
     public void testNativeFilterWithCompoundSlicer() {
         propSaver.set(MondrianProperties.instance().GenerateFormattedSql, true);
+        // FIXME - with the fix for Mondrian 2202 this one won't be natively evaluated,
+        // since time.quarter.members could cross both 1997 and 1998, and [1997] is in context.
+        // IF 1998 actually had data this would have potentially given wrong data.
         final String mdx =
             "with member measures.avgQtrs as 'avg( filter( time.quarter.members, measures.[unit sales] > 80))' "
             + "select measures.avgQtrs * gender.members on 0 from sales where head( product.[product name].members, 3)";

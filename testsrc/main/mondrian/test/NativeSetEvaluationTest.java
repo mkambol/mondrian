@@ -1306,5 +1306,21 @@ public class NativeSetEvaluationTest extends BatchTestCase {
 
         propSaver.reset();
     }
+
+    public void testRankTuplesWithTiedExpr() {
+
+        verifySameNativeAndNot(
+            "with "
+                + " Set [Beers for Store] as 'NonEmptyCrossJoin("
+                + "[Product].[All Products].[Drink].[Alcoholic Beverages].[Beer and Wine].[Beer].children, "
+                + "{[Store].[USA].[OR].[Portland].[Store 11]})' "
+                + "  member [Measures].[Sales Rank] as ' Rank(([Product].CurrentMember,[Store].CurrentMember), [Beers for Store], [Measures].[Unit Sales]) '\n"
+                + "select {[Measures].[Unit Sales], [Measures].[Sales Rank]} on columns,\n"
+                + " Generate([Beers for Store], {([Product].CurrentMember, [Store].CurrentMember)}) on rows\n"
+                + "from [Sales]\n"
+                + "WHERE ([Time].[1997].[Q2].[6])", "", getTestContext());
+
+    }
+
 }
 // End NativeSetEvaluationTest.java

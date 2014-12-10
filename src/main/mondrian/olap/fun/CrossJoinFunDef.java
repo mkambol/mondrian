@@ -17,7 +17,6 @@ import mondrian.mdx.*;
 import mondrian.olap.*;
 import mondrian.olap.type.*;
 import mondrian.rolap.RolapEvaluator;
-import mondrian.rolap.RolapUtil;
 import mondrian.util.CartesianProductList;
 
 import java.util.*;
@@ -763,30 +762,36 @@ public class CrossJoinFunDef extends FunDefBase {
         final String measureSetKey = "MEASURE_SET-" + ctag;
         Set<Member> measureSet =
             Util.cast((Set) query.getEvalCache(measureSetKey));
+
+        final String memberSetKey = "MEMBER_SET-" + ctag;
+        Set<Member> dimMemberSet =
+            Util.cast((Set) query.getEvalCache(memberSetKey));
         // If not in query cache, then create and place into cache.
         // This information is used for each iteration so it makes
         // sense to create and cache it.
-        if (measureSet == null) {
+        if (measureSet == null || dimMemberSet == null) {
             measureSet = new HashSet<Member>();
+            dimMemberSet = new HashSet<Member>();
             Set<Member> queryMeasureSet = query.getMeasuresMembers();
             MeasureVisitor visitor = new MeasureVisitor(measureSet, call);
+            MemberVisitor memVisitor = new MemberVisitor(dimMemberSet);
             for (Member m : queryMeasureSet) {
                 if (m.isCalculated()) {
                     Exp exp = m.getExpression();
                     exp.accept(visitor);
+                    exp.accept(memVisitor);
                 } else {
                     measureSet.add(m);
                 }
             }
-
             Formula[] formula = query.getFormulas();
             if (formula != null) {
                 for (Formula f : formula) {
                     f.accept(visitor);
                 }
             }
-
             query.putEvalCache(measureSetKey, measureSet);
+            query.putEvalCache(memberSetKey, dimMemberSet);
         }
 
         final String allMemberListKey = "ALL_MEMBER_LIST-" + ctag;
@@ -947,6 +952,15 @@ public class CrossJoinFunDef extends FunDefBase {
             final TupleCursor cursor = list.tupleCursor();
             while (cursor.forward()) {
                 cursor.setContext(evaluator);
+                 for ( Member member : dimMemberSet) {
+				     // dimMemberSet contains members referenced within measures.  Need
+					 // to make sure that we don't incorrectly assume a context
+					 // that will be changed by the measure, so conservatively
+					 // push context to [All] for each of the associated
+					 // hierarchies.
+                     evaluator.setContext(member.getHierarchy().getAllMember());
+                 }
+
                 if (checkData(
                         nonAllMembers,
                         nonAllMembers.length - 1,

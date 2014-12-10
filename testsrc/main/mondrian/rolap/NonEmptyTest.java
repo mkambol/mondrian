@@ -5551,6 +5551,52 @@ public class NonEmptyTest extends BatchTestCase {
             + "Row #1: 30,992\n";
         assertQueryReturns(mdx, expected);
     }
+
+    public void testMondrian2202WithConflictingMemberInSlicer() {
+             assertQueryReturns(
+                 "with member [Measures].[YTD Unit Sales] as 'Sum(Ytd([Time].[Time].CurrentMember), [Measures].[Unit Sales])'\n" +
+                     "select\n" +
+                     "{[Measures].[YTD Unit Sales]}\n" +
+                     "ON COLUMNS,\n" +
+                     "NON EMPTY Crossjoin(\n" +   // Switching to a NonEmptyCrossjoin() will fail
+                     "{[Customers].[All Customers]}\n" +
+                     ", [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].Children) ON ROWS\n" +
+                     "from [Sales]\n" +
+                     "where\n" +
+                     "{ [Time].[1997].[Q3].[9]}",
+                 "Axis #0:\n"
+                 + "{[Time].[1997].[Q3].[9]}\n"
+                 + "Axis #1:\n"
+                 + "{[Measures].[YTD Unit Sales]}\n"
+                 + "Axis #2:\n"
+                 + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker 1% Milk]}\n"
+                 + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker 2% Milk]}\n"
+                 + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker Buttermilk]}\n"
+                 + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker Chocolate Milk]}\n"
+                 + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker Whole Milk]}\n"
+                 + "Row #0: 147\n"
+                 + "Row #1: 136\n"
+                 + "Row #2: 84\n"
+                 + "Row #3: 94\n"
+                 + "Row #4: 101\n");
+         }
+
+    public void testMondrian2202WithCrossjoin() {
+        assertQueryReturns(
+            "WITH  member measures.[overrideContext] as '( measures.[unit sales], Time.[1997].Q1 )'\n"
+            + "SELECT measures.[overrideContext] on 0, \n"
+            + "NON EMPTY crossjoin( Time.[1998].Q1, [Marital Status].[M]) on 1\n"
+            + "FROM sales\n",
+            "Axis #0:\n"
+            + "{}\n"
+            + "Axis #1:\n"
+            + "{[Measures].[overrideContext]}\n"
+            + "Axis #2:\n"
+            + "{[Time].[1998].[Q1], [Marital Status].[M]}\n"
+            + "Row #0: 33,101\n");
+    }
+
+
 }
 
 // End NonEmptyTest.java

@@ -9646,7 +9646,11 @@ public class FunctionTest extends FoodMartTestCase {
             + "Row #4: 3\n");
     }
 
+
     public void testRankTuplesWithTiedExpr() {
+        // FIXME- Results for this test are currently wrong and are a good example of MONDRIAN-2202.
+        // There should be a row for [Beer].[Pearl], since there's an associated [Sales Rank] value, but
+        // native eval suppresses it.
         assertQueryReturns(
             "with "
             + " Set [Beers for Store] as 'NonEmptyCrossJoin("
