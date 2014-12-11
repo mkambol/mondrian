@@ -38,7 +38,9 @@ public class CrossJoinArgFactory {
     public CrossJoinArgFactory(boolean restrictMemberTypes) {
         this.restrictMemberTypes = restrictMemberTypes;
     }
-
+    // FIXME - creates invalid crossjoinarg set if the same level occurs on
+    // more than one axis (e.g. if it's present in a calculation and explicitly
+    // on an opposing axis)
     public Set<CrossJoinArg> buildConstraintFromAllAxes(
         final RolapEvaluator evaluator)
     {

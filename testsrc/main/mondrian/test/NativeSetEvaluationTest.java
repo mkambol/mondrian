@@ -125,6 +125,11 @@ public class NativeSetEvaluationTest extends BatchTestCase {
      * Simple enumerated aggregate.
      */
     public void testNativeTopCountWithAggFlatSet() {
+        //  FIXME - this form of MDX hits 2202.  If the aggregate set didn't happen to have non empty data for the
+        // this would potentially give wrong results.
+        // E.g. if you replace
+        // the commented line below.
+        // This is the sort of thing we should skip native eval for.
         final boolean useAgg =
             MondrianProperties.instance().UseAggregates.get()
             && MondrianProperties.instance().ReadAggregates.get();
@@ -132,6 +137,7 @@ public class NativeSetEvaluationTest extends BatchTestCase {
         final String mdx =
             "with\n"
             + "member Time.x as Aggregate({[Time].[1997].[Q1] , [Time].[1997].[Q2], [Time].[1997].[Q3]}, [Measures].[Store Sales])\n"
+                //+ "member Time.x as Aggregate({[Time].[1998].[Q4]}, [Measures].[Store Sales])\n"
             + "member Measures.x1 as ([Time].[1997].[Q1], [Measures].[Store Sales])\n"
             + "member Measures.x2 as ([Time].[1997].[Q2], [Measures].[Store Sales])\n"
             + "member Measures.x3 as ([Time].[1997].[Q3], [Measures].[Store Sales])\n"
