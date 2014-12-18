@@ -3516,7 +3516,10 @@ public class NonEmptyTest extends BatchTestCase {
             + "Member [Store].[*CTX_METRIC_MEMBER_SEL~MAX] as 'Max([*NATIVE_MEMBERS_Store])' "
             + "Member [Measures].[*Unit Sales_SEL~MAX] as '([Measures].[Unit Sales],[Education Level].CurrentMember,[Product].[*CTX_METRIC_MEMBER_SEL~MAX],[Store].[*CTX_METRIC_MEMBER_SEL~MAX])' "
             + "Select "
-            + "CrossJoin(Generate([*METRIC_CJ_SET], {([Store].CurrentMember)}),[*BASE_MEMBERS_Measures]) on columns, "
+                // w/ change for 2202 the CJ.nonEmptyList() method won't suppress the Canada/Mexico members, because Store.[All Stores] is
+                // included in a measure and could potentially result in tuples with data.
+                // in this case the measure is not explicitly on an axis... maybe we could be selective.
+            + "Non Empty CrossJoin(Generate([*METRIC_CJ_SET], {([Store].CurrentMember)}),[*BASE_MEMBERS_Measures]) on columns, "
             + "Non Empty Generate([*METRIC_CJ_SET], {([Education Level].CurrentMember,[Product].CurrentMember)}) on rows "
             + "From [Sales]");
     }
@@ -5564,33 +5567,40 @@ public class NonEmptyTest extends BatchTestCase {
         // In this case the YTD measure should have a value for each
         // of the 5 [Booker] products, even though not all of them have
         // data in the context of the slicer.
-        assertQueryReturns(
-            "with member [Measures].[YTD Unit Sales] as "
-            + "'Sum(Ytd([Time].[Time].CurrentMember), [Measures].[Unit Sales])'\n"
-            + "select\n"
-            + "{[Measures].[YTD Unit Sales]}\n"
-            + "ON COLUMNS,\n"
-            + "NON EMPTY Crossjoin(\n"
-            + "{[Customers].[All Customers]}\n"
-            + ", [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].Children) ON ROWS\n"
-            + "from [Sales]\n"
-            + "where\n"
-            + "{ [Time].[1997].[Q3].[9]}",
-            "Axis #0:\n"
-            + "{[Time].[1997].[Q3].[9]}\n"
-            + "Axis #1:\n"
-            + "{[Measures].[YTD Unit Sales]}\n"
-            + "Axis #2:\n"
-            + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker 1% Milk]}\n"
-            + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker 2% Milk]}\n"
-            + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker Buttermilk]}\n"
-            + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker Chocolate Milk]}\n"
-            + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker Whole Milk]}\n"
-            + "Row #0: 147\n"
-            + "Row #1: 136\n"
-            + "Row #2: 84\n"
-            + "Row #3: 94\n"
-            + "Row #4: 101\n");
+
+        String[] referencesToTimeMember = new String[]
+            {"[Time].[1997].[Q3].[9]",
+             "[Time].[Time].CurrentMember"};
+
+        for (String timeMember : referencesToTimeMember) {
+            assertQueryReturns(
+                "with member [Measures].[YTD Unit Sales] as "
+                    + "'Sum(Ytd(" + timeMember + "), [Measures].[Unit Sales])'\n"
+                    + "select\n"
+                    + "{[Measures].[YTD Unit Sales]}\n"
+                    + "ON COLUMNS,\n"
+                    + "NON EMPTY Crossjoin(\n"
+                    + "{[Customers].[All Customers]}\n"
+                    + ", [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].Children) ON ROWS\n"
+                    + "from [Sales]\n"
+                    + "where\n"
+                    + "{ [Time].[1997].[Q3].[9]}",
+                "Axis #0:\n"
+                    + "{[Time].[1997].[Q3].[9]}\n"
+                    + "Axis #1:\n"
+                    + "{[Measures].[YTD Unit Sales]}\n"
+                    + "Axis #2:\n"
+                    + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker 1% Milk]}\n"
+                    + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker 2% Milk]}\n"
+                    + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker Buttermilk]}\n"
+                    + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker Chocolate Milk]}\n"
+                    + "{[Customers].[All Customers], [Product].[Drink].[Dairy].[Dairy].[Milk].[Booker].[Booker Whole Milk]}\n"
+                    + "Row #0: 147\n"
+                    + "Row #1: 136\n"
+                    + "Row #2: 84\n"
+                    + "Row #3: 94\n"
+                    + "Row #4: 101\n");
+        }
     }
 
     public void testMondrian2202WithCrossjoin() {
@@ -5701,6 +5711,96 @@ public class NonEmptyTest extends BatchTestCase {
             + "Row #0: 33,190\n"
             + "Row #1: 33,190\n");
     }
+
+
+
+    public void _test() {
+        assertQueryReturns(
+            "WITH\n"
+                + "SET [*NATIVE_CJ_SET] AS 'NONEMPTYCROSSJOIN([*BASE_MEMBERS__Time Period_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Category_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Level Supplier_],[*BASE_MEMBERS__Internal Sale_])))'\n"
+                + "SET [*BASE_MEMBERS__Internal Sale_] AS '{[Gender].[M]}'\n"
+                + "SET [*SORTED_COL_AXIS] AS 'ORDER([*CJ_COL_AXIS],ANCESTOR([Time].CURRENTMEMBER, [Time].[Year]).ORDERKEY,BASC,[Time].CURRENTMEMBER.ORDERKEY,BASC)'\n"
+                + "SET [*BASE_MEMBERS__Measures_] AS '{[Measures].[*FORMATTED_MEASURE_0],[Measures].[*FORMATTED_MEASURE_1],[Measures].[YTD Variance],[Measures].[YTD Variance %]}'\n"
+                + "SET [*BASE_MEMBERS__Level Supplier_] AS '[Store].[Store State].MEMBERS'\n"
+                + "SET [*CJ_SLICER_AXIS] AS 'GENERATE([*NATIVE_CJ_SET], {([Gender].CURRENTMEMBER)})'\n"
+                + "SET [*CJ_ROW_AXIS] AS 'GENERATE([*NATIVE_CJ_SET], {([Product].CURRENTMEMBER,[Store].CURRENTMEMBER)})'\n"
+                + "SET [*BASE_MEMBERS__Category_] AS '{[Product].[Food].[Canned Foods].[Canned Soup].[Soup].[Bravo]}'\n"
+                + "SET [*SORTED_ROW_AXIS] AS 'ORDER([*CJ_ROW_AXIS],[Product].CURRENTMEMBER.ORDERKEY,BASC,[Store].CURRENTMEMBER.ORDERKEY,BASC)'\n"
+                + "SET [*CJ_COL_AXIS] AS 'GENERATE([*NATIVE_CJ_SET], {([Time].CURRENTMEMBER)})'\n"
+                + "SET [*BASE_MEMBERS__Time Period_] AS 'FILTER([Time].[Month].MEMBERS,(ANCESTOR([Time].CURRENTMEMBER, [Time].[Year]) IN {[Time].[1997]}) AND ([Time].CURRENTMEMBER IN {[Time].[1997].[Q2].[4]}))'\n"
+                + "MEMBER [Measures].[YTD Actual] AS 'Sum(PeriodsToDate([Time].[Year], [Time].CurrentMember), [Measures].[Store Sales])'\n"
+                + "MEMBER [Measures].[YTD Target] AS 'Sum(PeriodsToDate([Time].[Year], [Time].CurrentMember), [Measures].[Store Cost])'\n"
+                + "MEMBER [Measures].[YTD Variance] AS 'Sum(PeriodsToDate([Time].[Year], [Time].CurrentMember), [Measures].[Store Sales]) - Sum(PeriodsToDate([Time].[Year], [Time].CurrentMember), [Measures].[Store Cost])'\n"
+                + "MEMBER [Measures].[YTD Variance %] AS 'Round([Measures].[YTD Variance]/[Measures].[YTD Target],3)'\n"
+
+                + "MEMBER [Store].[*TOTAL_MEMBER_SEL~SUM] AS 'SUM(GENERATE(EXISTS([*NATIVE_CJ_SET], {([Product].CURRENTMEMBER)}), {([Product].CURRENTMEMBER, [Store].CURRENTMEMBER)}))', SOLVE_ORDER=99\n"
+                + "MEMBER [Measures].[*FORMATTED_MEASURE_0] AS '[Measures].[YTD Actual]', FORMAT_STRING = '$#,##0;($#,##0)', SOLVE_ORDER=500\n"
+                + "MEMBER [Measures].[*FORMATTED_MEASURE_1] AS '[Measures].[YTD Target]', FORMAT_STRING = '$#,##0;($#,##0)', SOLVE_ORDER=500\n"
+                + "SELECT\n"
+                + "CROSSJOIN([*SORTED_COL_AXIS],[*BASE_MEMBERS__Measures_]) ON COLUMNS\n"
+                + ",NON EMPTY\n"
+                + "UNION(CROSSJOIN(GENERATE([*NATIVE_CJ_SET], {([Product].CURRENTMEMBER)}),{[Store].[*TOTAL_MEMBER_SEL~SUM]}),[*SORTED_ROW_AXIS]) ON ROWS\n"
+                + "FROM [Sales]\n" + "WHERE ([*CJ_SLICER_AXIS])", "Axis #0:\n" + "{[Gender].[M]}\n" + "Axis #1:\n"
+                + "{[Time].[1997].[Q2].[4], [Measures].[*FORMATTED_MEASURE_0]}\n"
+                + "{[Time].[1997].[Q2].[4], [Measures].[*FORMATTED_MEASURE_1]}\n"
+                + "{[Time].[1997].[Q2].[4], [Measures].[YTD Variance]}\n"
+                + "{[Time].[1997].[Q2].[4], [Measures].[YTD Variance %]}\n" + "Axis #2:\n"
+                + "{[Product].[Food].[Canned Foods].[Canned Soup].[Soup].[Bravo], [Store].[*TOTAL_MEMBER_SEL~SUM]}\n"
+                + "{[Product].[Food].[Canned Foods].[Canned Soup].[Soup].[Bravo], [Store].[USA].[CA]}\n"
+                + "{[Product].[Food].[Canned Foods].[Canned Soup].[Soup].[Bravo], [Store].[USA].[OR]}\n"
+                + "{[Product].[Food].[Canned Foods].[Canned Soup].[Soup].[Bravo], [Store].[USA].[WA]}\n" + "Row #0: $3\n"
+                + "Row #0: $2\n" + "Row #0: 1.00\n" + "Row #0: 9,223,372,036,854,776.00\n" + "Row #1: $2\n"
+                + "Row #1: $1\n" + "Row #1: 1.00\n" + "Row #1: 1.00\n" + "Row #2: $1\n" + "Row #2: \n" + "Row #2: 1.00\n"
+                + "Row #2: 9,223,372,036,854,776.00\n" + "Row #3: \n" + "Row #3: $1\n" + "Row #3: -1.00\n"
+                + "Row #3: -1.00\n" );
+
+        assertQueryReturns(
+            "// Request ID: 9e726789-8408-11e4-9be7-0050569f1929 - RUN_REPORT\n"
+                + "WITH\n"
+                + "SET [*NATIVE_CJ_SET] AS 'FILTER(NONEMPTYCROSSJOIN([*BASE_MEMBERS__Time Period_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Category_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Level Supplier_],[*BASE_MEMBERS__Internal Sale_]))), NOT ISEMPTY ([Measures].[YTD Variance %]) OR NOT ISEMPTY ([Measures].[YTD Variance]) OR NOT ISEMPTY ([Measures].[YTD Target]) OR NOT ISEMPTY ([Measures].[YTD Actual]))'\n"
+                + "SET [*BASE_MEMBERS__Internal Sale_] AS '{[Gender].[M]}'\n"
+                + "SET [*SORTED_COL_AXIS] AS 'ORDER([*CJ_COL_AXIS],ANCESTOR([Time].CURRENTMEMBER, [Time].[Year]).ORDERKEY,BASC,[Time].CURRENTMEMBER.ORDERKEY,BASC)'\n"
+                + "SET [*BASE_MEMBERS__Measures_] AS '{[Measures].[*FORMATTED_MEASURE_0],[Measures].[*FORMATTED_MEASURE_1],[Measures].[YTD Variance],[Measures].[YTD Variance %]}'\n"
+                + "SET [*NATIVE_MEMBERS__Time Period_] AS 'GENERATE([*NATIVE_CJ_SET], {[Time].CURRENTMEMBER})'\n"
+                + "SET [*NATIVE_MEMBERS__Internal Sale_] AS 'GENERATE([*NATIVE_CJ_SET], {[Gender].CURRENTMEMBER})'\n"
+                + "SET [*BASE_MEMBERS__Level Supplier_] AS '[Store].[Store State].MEMBERS'\n"
+                + "SET [*CJ_SLICER_AXIS] AS 'GENERATE([*NATIVE_CJ_SET], {([Gender].CURRENTMEMBER)})'\n"
+                + "SET [*CJ_ROW_AXIS] AS 'GENERATE([*NATIVE_CJ_SET], {([Product].CURRENTMEMBER,[Store].CURRENTMEMBER)})'\n"
+                + "SET [*BASE_MEMBERS__Category_] AS '{[Product].[Food].[Canned Foods].[Canned Soup].[Soup].[Bravo]}'\n"
+                + "SET [*SORTED_ROW_AXIS] AS 'ORDER([*CJ_ROW_AXIS],[Product].CURRENTMEMBER.ORDERKEY,BASC,[Measures].[*SORTED_MEASURE],BDESC)'\n"
+                + "SET [*CJ_COL_AXIS] AS 'GENERATE([*NATIVE_CJ_SET], {([Time].CURRENTMEMBER)})'\n"
+                + "SET [*BASE_MEMBERS__Time Period_] AS 'FILTER([Time].[Month].MEMBERS,(ANCESTOR([Time].CURRENTMEMBER, [Time].[Year]) IN {[Time].[1997]}) AND ([Time].CURRENTMEMBER IN {[Time].[1997].[Q2].[4]}))'\n"
+                + "MEMBER [Measures].[YTD Actual] AS 'Sum(PeriodsToDate([Time].[Year], [Time].CurrentMember), [Measures].[Store Sales])'\n"
+                + "MEMBER [Measures].[YTD Target] AS 'Sum(PeriodsToDate([Time].[Year], [Time].CurrentMember), [Measures].[Store Cost])'\n"
+                + "MEMBER [Measures].[YTD Variance] AS 'Sum(PeriodsToDate([Time].[Year], [Time].CurrentMember), [Measures].[Store Sales]) - Sum(PeriodsToDate([Time].[Year], [Time].CurrentMember), [Measures].[Store Cost])'\n"
+                + "MEMBER [Measures].[YTD Variance %] AS 'Round([Measures].[YTD Variance]/[Measures].[YTD Target],3)'\n"
+
+                + "MEMBER [Product].[*TOTAL_MEMBER_SEL~SUM] AS 'SUM(GENERATE([*NATIVE_CJ_SET], {([Product].CURRENTMEMBER, [Store].CURRENTMEMBER)}))', SOLVE_ORDER=100\n"
+                + "MEMBER [Gender].[*CTX_MEMBER_SEL~AGG] AS 'AGGREGATE([*NATIVE_MEMBERS__Internal Sale_])', SOLVE_ORDER=-302\n"
+                + "MEMBER [Store].[*DEFAULT_MEMBER] AS '[Store].DEFAULTMEMBER', SOLVE_ORDER=-400\n"
+                + "MEMBER [Store].[*TOTAL_MEMBER_SEL~SUM] AS 'SUM(GENERATE(EXISTS([*NATIVE_CJ_SET], {([Product].CURRENTMEMBER)}), {([Product].CURRENTMEMBER, [Store].CURRENTMEMBER)}))', SOLVE_ORDER=99\n"
+                + "MEMBER [Measures].[*FORMATTED_MEASURE_0] AS '[Measures].[YTD Actual]', FORMAT_STRING = '$#,##0;($#,##0)', SOLVE_ORDER=500\n"
+                + "MEMBER [Measures].[*FORMATTED_MEASURE_1] AS '[Measures].[YTD Target]', FORMAT_STRING = '$#,##0;($#,##0)', SOLVE_ORDER=500\n"
+                + "MEMBER [Measures].[*SORTED_MEASURE] AS '([Measures].[YTD Variance %],[Time].[*CTX_MEMBER_SEL~SUM],[Gender].[*CTX_MEMBER_SEL~AGG])', SOLVE_ORDER=400\n"
+                + "MEMBER [Time].[*CTX_MEMBER_SEL~SUM] AS 'SUM([*NATIVE_MEMBERS__Time Period_])', SOLVE_ORDER=98\n"
+                + "SELECT\n"
+                + "CROSSJOIN([*SORTED_COL_AXIS],[*BASE_MEMBERS__Measures_]) ON COLUMNS\n"
+                + ",UNION(CROSSJOIN({[Product].[*TOTAL_MEMBER_SEL~SUM]},{([Store].[*DEFAULT_MEMBER])}),UNION(CROSSJOIN(GENERATE([*NATIVE_CJ_SET], {([Product].CURRENTMEMBER)}),{[Store].[*TOTAL_MEMBER_SEL~SUM]}),[*SORTED_ROW_AXIS])) ON ROWS\n"
+                + "FROM [Sales]\n" + "WHERE ([*CJ_SLICER_AXIS])", "" );
+    }
+
+    public void _testSummaryTest() {
+        assertQueryReturns("With\n" +
+            "Set [*BASE_MEMBERS_Customer] as '[Customers].[Name].members'\n" +
+            "Set [*BASE_MEMBERS_StoreCountry] as '[Store].[Store Country].members'\n" +
+            "Set [*BASE_MEMBERS_StoreState] as '[Store].[Store State].members'\n" +
+            "Set [NECJ] as 'NonEmptyCrossJoin([*BASE_MEMBERS_Customer],[*BASE_MEMBERS_StoreCountry])'\n" +
+            "Member [Measures].[m1] as 'Count(NonEmptyCrossJoin([*BASE_MEMBERS_Customer],[*BASE_MEMBERS_StoreCountry]))'\n" +
+            "Member [Measures].[m3] as 'Count([NECJ])'\n" +
+            "select [*BASE_MEMBERS_StoreState] on rows, {[Measures].[m1], [Measures].[m3]} on columns\n" +
+            "from Sales\n","");
+    }
+
 }
 
 // End NonEmptyTest.java

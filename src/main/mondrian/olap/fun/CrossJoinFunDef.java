@@ -741,7 +741,7 @@ public class CrossJoinFunDef extends FunDefBase {
             // one or more measures may conflict with the members in the tuple,
             // overriding the context of the tuple member when determining
             // non-emptiness.
-            MemberVisitor memVisitor = new MemberVisitor(memberSet, call);
+            MemberExtractingVisitor memVisitor = new MemberExtractingVisitor(memberSet, call, false);
 
             for (Member m : queryMeasureSet) {
                 if (m.isCalculated()) {
@@ -751,11 +751,6 @@ public class CrossJoinFunDef extends FunDefBase {
                 } else {
                     measureSet.add(m);
                 }
-            }
-            if (memVisitor.encounteredCall()) {
-                // This CJ occurs within a measure, so we'll assume we don't
-                // have to worry about conflicting measures.
-                memberSet.clear();
             }
             Formula[] formula = query.getFormulas();
             if (formula != null) {

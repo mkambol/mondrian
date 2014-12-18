@@ -16,7 +16,7 @@ import mondrian.olap.fun.*;
 import mondrian.resource.MondrianResource;
 import mondrian.rolap.agg.*;
 import mondrian.rolap.aggmatcher.AggStar;
-import mondrian.rolap.sql.SqlQuery;
+import mondrian.rolap.sql.*;
 import mondrian.spi.Dialect;
 import mondrian.util.FilteredIterableList;
 
@@ -1734,13 +1734,13 @@ public class SqlConstraintUtils {
      * being constructed.
      */
     public static boolean measuresConflictWithMembers(
-        Set<Member> measures, Set<Member> members) {
+        Set<Member> measures, Member[] members) {
         Set<Member> membersNestedInMeasures = new HashSet<Member>();
 
         for (Member m : measures) {
             if (m.isCalculated()) {
                 Exp exp = m.getExpression();
-                exp.accept(new MemberVisitor(membersNestedInMeasures, null));
+                exp.accept(new MemberExtractingVisitor(membersNestedInMeasures, null, false));
             }
         }
         for (Member memberCheckedForConflict : members) {
@@ -1757,6 +1757,22 @@ public class SqlConstraintUtils {
         }
         return false;
     }
+
+    public static boolean measuresConflictWithMembers(Set<Member> measuresMembers, CrossJoinArg[] cjArgs) {
+        return measuresConflictWithMembers(measuresMembers, getCJArgMembers(cjArgs));
+    }
+
+    private static Member[] getCJArgMembers(CrossJoinArg[] cjArgs) {
+        Set<Member> members = new HashSet<Member>();
+        for (CrossJoinArg arg : cjArgs) {
+            if (arg.getMembers() != null) {
+                members.addAll(arg.getMembers());
+            }
+        }
+        return members.toArray( new Member[members.size()] );
+    }
+
+
 
 }
 
