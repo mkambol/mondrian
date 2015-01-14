@@ -8,6 +8,8 @@
 */
 package mondrian.rolap.agg;
 
+import mondrian.calc.TupleList;
+import mondrian.calc.impl.*;
 import mondrian.olap.*;
 import mondrian.rolap.*;
 import mondrian.spi.*;
@@ -15,6 +17,10 @@ import mondrian.test.*;
 import mondrian.util.*;
 
 import java.util.*;
+
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.eq;
 
 /**
  * <p>Test for <code>SegmentBuilder</code>.</p>
@@ -747,6 +753,183 @@ public class SegmentBuilderTest extends BatchTestCase {
             + "Excluded Regions:[]\n"
             + "Compound Predicates:[]\n"
             + "ID:[360a78a6503ae823650bbfd528bd3014e77d09c2cc0815f5eac90e8d7d46a474]\n");
+    }
+
+
+    public void testMakeHeaderBody() {
+        // the following tests populate the cache with a specific segment,
+        // and then  attempt to construct the same segment using the
+        // tuple and values array from the results using the
+        // SegmentBuilder.makeHeaderBody() method.
+        //  The test expectes a single measure to be on axis 1, and all tuple
+        //  constraints to be on axis 0.
+        propSaver.properties.EnableNativeCrossJoin.set(false);
+        propSaver.properties.EnableNativeNonEmpty.set(false);
+
+        runMakeSegHeaderBodyTest(
+            "select crossjoin( gender.gender.members, "
+            + "{[marital status].[m]}) on 0, measures.[unit sales] on 1 "
+            + "from sales");
+        runMakeSegHeaderBodyTest(
+            "select crossjoin({[marital status].[m]}, "
+                + "gender.gender.members) on 0, measures.[unit sales] on 1 "
+                + "from sales");
+        runMakeSegHeaderBodyTest(
+            "select crossjoin({[marital status].[m]}, "
+                + "{gender.[m],gender.[f]}) on 0, measures.[unit sales] on 1 "
+                + "from sales");
+        runMakeSegHeaderBodyTest(
+            "select crossjoin({[marital status].[m], [marital status].[s]}, "
+                + "{gender.[m],gender.[f]}) on 0, measures.[unit sales] on 1 "
+                + "from sales");
+        runMakeSegHeaderBodyTest(
+            "select crossjoin(gender.gender.members," +
+                "crossjoin({[marital status].[marital status].members}, "
+                + "{Product.[Drink], Product.[Food]})) on 0, measures.[unit sales] on 1 "
+                + "from sales");
+        runMakeSegHeaderBodyTest(
+            "select gender.gender.members on 0, measures.[unit sales] on 1 "
+                + "from sales");
+    }
+
+
+
+    public void testNE() {
+        final String query = "select NON EMPTY crossjoin(gender.gender.members," +
+            "crossjoin({[marital status].[marital status].members}, "
+            + "{Product.[Drink], Product.[Food]})) on 0, measures.[unit sales] on 1 "
+            + "from sales ";
+        assertQueryReturns(
+            query,
+            "Axis #0:\n"
+                + "{}\n"
+                + "Axis #1:\n"
+                + "{[Gender].[F], [Marital Status].[M], [Product].[Drink]}\n"
+                + "{[Gender].[F], [Marital Status].[M], [Product].[Food]}\n"
+                + "{[Gender].[F], [Marital Status].[S], [Product].[Drink]}\n"
+                + "{[Gender].[F], [Marital Status].[S], [Product].[Food]}\n"
+                + "{[Gender].[M], [Marital Status].[M], [Product].[Drink]}\n"
+                + "{[Gender].[M], [Marital Status].[M], [Product].[Food]}\n"
+                + "{[Gender].[M], [Marital Status].[S], [Product].[Drink]}\n"
+                + "{[Gender].[M], [Marital Status].[S], [Product].[Food]}\n"
+                + "Axis #2:\n"
+                + "{[Measures].[Unit Sales]}\n"
+                + "Row #0: 6,207\n"
+                + "Row #0: 47,187\n"
+                + "Row #0: 5,995\n"
+                + "Row #0: 47,627\n"
+                + "Row #0: 5,969\n"
+                + "Row #0: 47,742\n"
+                + "Row #0: 6,426\n"
+                + "Row #0: 49,384\n"
+
+        );
+
+
+    }
+
+
+    public void testMakeHeaderBody2() {
+
+
+//        runMakeSegHeaderBodyTest(
+//            "select [Time].[1997].[Q1] on 0, measures.[unit sales] on 1 "
+//                + "from sales");
+
+
+    }
+
+
+    public void runMakeSegHeaderBodyTest(String mdx) {
+        propSaver.properties.OptimizePredicates.set(false);
+        getTestContext().flushSchemaCache();
+        TestContext context = getTestContext().withFreshConnection();
+
+        Result result = context.executeQuery(mdx);
+
+        SegmentCache cache = MondrianServer.forConnection(
+            getTestContext().getConnection()).getAggregationManager()
+            .cacheMgr.compositeCache;
+
+        List<SegmentHeader> headers = cache.getSegmentHeaders();
+
+        List<Object> values = new ArrayList<Object>();
+        collectVals(values,result.getAxes().length-1,new int[result.getAxes().length], result);
+
+        TupleList tupleList = positionsToTupleList(
+            result.getAxes()[0].getPositions());
+
+        assertTrue(
+            "This test assumes MDX used has a base measure present in the 0th"
+            + "position of the 2nd axis",
+            result.getAxes().length > 1
+            && result.getAxes()[1].getPositions().get(0).get(0) instanceof
+                RolapBaseCubeMeasure);
+        RolapBaseCubeMeasure measure =
+            (RolapBaseCubeMeasure)result.getAxes()[1].getPositions().get(0).get(0);
+
+        Pair<SegmentHeader, SegmentBody> pair = SegmentBuilder.makeHeaderBodyPair(
+            tupleList,
+            measure,
+            //(RolapBaseCubeMeasure)result.getSlicerAxis().getPositions().get(0).get(0),
+            values,
+            result.getQuery());
+
+        SegmentHeader matchingHeader = null;
+        for (SegmentHeader header : headers) {
+            if (header.getUniqueID().equals(pair.left.getUniqueID())) {
+                matchingHeader = header;
+                break;
+            }
+        }
+        assertNotNull(
+            "No cached header matches the generated one \n"
+            + pair.left,
+            matchingHeader);
+        SegmentBody expectedBody = cache.get(matchingHeader);
+        SegmentBody generatedBody = pair.getValue();
+
+        assertThat(expectedBody.getAxisValueSets(),
+            equalTo(generatedBody.getAxisValueSets()));
+        assertThat(expectedBody.getNullAxisFlags(),
+            equalTo(generatedBody.getNullAxisFlags()));
+        assertThat(expectedBody.getNullValueIndicators(),
+            equalTo(generatedBody.getNullValueIndicators()));
+        assertThat(expectedBody.getValueMap(),
+            equalTo(generatedBody.getValueMap()));
+    }
+
+    private TupleList positionsToTupleList(List<Position> positions) {
+        assertFalse(positions.isEmpty());
+        final int arity = positions.get(0).size();
+
+        TupleList tupleList;
+        if(arity == 1) {
+            tupleList = new UnaryTupleList();
+        } else {
+            tupleList = new ArrayTupleList(arity);
+        }
+        for (Position position : positions) {
+            tupleList.add(position);
+        }
+        return tupleList;
+    }
+
+//    private RolapBaseCubeMeasure getMeasureInSlicer() {
+//
+//    }
+
+    private void collectVals(List<Object> values, int axisIndex, int[] pos, Result result) {
+        Axis[] axes = result.getAxes();
+        if (axisIndex < 0) {
+            values.add(result.getCell(pos).getValue());
+        } else {
+            List<Position> positions = axes[axisIndex].getPositions();
+            for (int i = 0; i < positions.size(); i++) {
+                pos[axisIndex] = i;
+                collectVals(values, axisIndex - 1, pos, result);
+            }
+        }
     }
 
 

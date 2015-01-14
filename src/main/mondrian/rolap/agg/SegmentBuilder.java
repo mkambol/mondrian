@@ -8,15 +8,14 @@
 */
 package mondrian.rolap.agg;
 
-import mondrian.olap.Aggregator;
-import mondrian.olap.Util;
+import mondrian.calc.TupleList;
+import mondrian.olap.*;
 import mondrian.rolap.*;
 import mondrian.rolap.agg.Segment.ExcludedRegion;
 import mondrian.rolap.sql.SqlQuery;
 import mondrian.spi.*;
 import mondrian.spi.Dialect.Datatype;
-import mondrian.util.ArraySortedSet;
-import mondrian.util.Pair;
+import mondrian.util.*;
 
 import org.apache.log4j.Logger;
 
@@ -601,6 +600,181 @@ public class SegmentBuilder {
             multiplier *= (axes.get(i).left.size() + nullAxisAdjustment);
         }
         return axisMultipliers;
+    }
+
+    public static Pair<SegmentHeader, SegmentBody> makeHeaderBodyPair(
+        TupleList tuples,
+        RolapBaseCubeMeasure measure,
+        List<Object> values,
+        Query query) {
+        List<Pair<SortedSet<Comparable>, Boolean>> memberSets = tuplesToSortedSets(tuples);
+
+
+        RolapStar star = query.getSchemaReader(false).getSchema().getStar(
+            measure.getCube().getStar().getFactTable().getTableName());
+
+        List<SegmentColumn> segmentColumns = new ArrayList<SegmentColumn>();
+
+        String[] columnTableAliases = new String[memberSets.size()];
+        String[] columnNames = new String[memberSets.size()];
+
+
+        int index = 0;
+        List<SortedSet<Comparable>> memberNameSets = new ArrayList<SortedSet<Comparable>>();
+        for (Pair<SortedSet<Comparable>, Boolean> members : memberSets) {
+
+            RolapMember member = (RolapMember)members.left.first();
+            columnTableAliases[index] = member.getLevel().getTableAlias();
+            String colExprWithTable = member.getLevel().getKeyExp().getGenericExpression();
+            columnNames[index] = colExprWithTable.substring(colExprWithTable.indexOf(".")+1);
+
+            RolapStar.Column[] cols =star.lookupColumns(
+                columnTableAliases[index], columnNames[index]);
+            assert cols.length == 1;
+            int cardinality = cols[0].getCardinality();
+            String colExpr = cols[0].getExpression().getGenericExpression();
+
+            SortedSet<Comparable> memberNames;
+            memberNames = new TreeSet<Comparable>();
+            memberNameSets.add(memberNames);
+            for (Comparable comp : members.left) {
+                memberNames.add(((RolapMember) comp).getName());
+            }
+            if (members.left.size()!=cardinality) {
+                segmentColumns.add(new SegmentColumn(colExpr, cardinality, memberNames));
+            } else {
+                segmentColumns.add(new SegmentColumn(colExpr, cardinality, null));
+            }
+            index++;
+        }
+
+        String schemaName = query.getSchemaReader(false).getSchema().getName();
+        ByteString checksum = query.getSchemaReader(false).getSchema().getChecksum();
+        String cubeName = query.getCube().getName();
+        String measureName = measure.getName();
+
+        SegmentHeader header = new SegmentHeader(schemaName,
+            checksum,
+            cubeName,
+            measureName,
+            segmentColumns,
+            new ArrayList<String>(),
+            star.getFactTable().getTableName(),
+            star.getBitKey(columnTableAliases, columnNames),
+            new ArrayList<SegmentColumn>());
+
+        SegmentBody body = getSegmentBody(values, memberNameSets, memberSets, tuples);
+
+        return new Pair<SegmentHeader, SegmentBody>(header, body);
+    }
+
+    private static SegmentBody getSegmentBody(
+        List<Object> values,
+        List<SortedSet<Comparable>> memberNameSets,
+        List<Pair<SortedSet<Comparable>, Boolean>> axisList, TupleList tuples) {
+        BitSet nullVals = new BitSet(values.size());
+
+        int numCells = 1;
+        int[] key = new int[tuples.getArity()];
+        for (SortedSet<Comparable> memberNames : memberNameSets) {
+            numCells *= memberNames.size();
+        }
+        double[] vals = new double[numCells];
+
+
+        Comparable[][] segmentMembers = sortedSetListToArray(axisList);
+
+        final int[] axisMultipliers =
+            computeAxisMultipliers(axisList);
+
+        Map<Level, Integer> segmentLevelIndex = new HashMap<Level, Integer>();
+        int index = 0;
+        for (Comparable[] member : segmentMembers) {
+            Comparable mem = member[0];
+            segmentLevelIndex.put(((Member)mem).getLevel(), index++);
+        }
+
+        for (int i = 0; i < tuples.size(); i++) {
+            List<Member> members = tuples.get(i);
+            for (int j = 0; j < tuples.getArity(); j++) {
+                Member member = members.get(j);
+                int segmentMemberIndex =
+                    segmentLevelIndex.get(member.getLevel());
+                key[segmentMemberIndex] = Util.binarySearch(
+                    segmentMembers[segmentMemberIndex],
+                    0, segmentMembers[segmentMemberIndex].length,
+                    member);
+            }
+            CellKey cellKey = CellKey.Generator.newCellKey(key);
+            vals[cellKey.getOffset(axisMultipliers)] =
+                ((Double)values.get(i)).doubleValue();
+        }
+        List<Pair<SortedSet<Comparable>,Boolean>> axes = new ArrayList<Pair<SortedSet<Comparable>,Boolean>>();
+        for (SortedSet<Comparable> members : memberNameSets) {
+            axes.add(new Pair<SortedSet<Comparable>,Boolean>(new ArraySortedSet(
+                members.toArray(new Comparable[members.size()])),false));
+        }
+        return new DenseDoubleSegmentBody(nullVals, vals, axes);
+    }
+
+    private static Comparable[][] sortedSetListToArray(
+        List<Pair<SortedSet<Comparable>, Boolean>> memsForSegColList) {
+        Comparable[][] ret = new Comparable[memsForSegColList.size()][];
+        int index = 0;
+        for (Pair<SortedSet<Comparable>, Boolean> members : memsForSegColList) {
+            ret[index++] = members.left.toArray(
+                new Comparable[members.left.size()]);
+        }
+        return ret;
+    }
+
+    /**
+     * Given a TupleList, returns a List of SortedSets of the unique members
+     * present in the TupleList, ordered by star bit position.
+     */
+    private static List<Pair<SortedSet<Comparable>, Boolean>> tuplesToSortedSets(TupleList tuples) {
+        List<Pair<SortedSet<Comparable>, Boolean>> distinctTupleMembers = new ArrayList<Pair<SortedSet<Comparable>, Boolean>>();
+
+        for (int i = 0; i < tuples.getArity(); i++) {
+            SortedSet<Comparable> memberSet = new TreeSet<Comparable>();
+            distinctTupleMembers.add(new Pair<SortedSet<Comparable>, Boolean>(memberSet, new Boolean(false)));
+            Member member = tuples.get(0).get(0);
+            while (!member.getParentMember().isAll()) {
+                distinctTupleMembers.add(new Pair<SortedSet<Comparable>, Boolean>(memberSet, new Boolean(false)));
+            }
+        }
+        for (List<Member> tuple : tuples) {
+            for (int i = 0; i < tuples.getArity(); i++) {
+                final Member member = tuple.get(i);
+                distinctTupleMembers.get(i).left.add(member);
+              //  if (!member.getParentMember().isAll())
+                if (tuple.get(i).isNull()) {
+                    distinctTupleMembers.get(i).right = true;
+                }
+            }
+        }
+        sortByBitPos(distinctTupleMembers);
+        return distinctTupleMembers;
+    }
+
+
+
+    private static void sortByBitPos(List<Pair<SortedSet<Comparable>, Boolean>> distinctTupleMembers) {
+        Collections.sort(distinctTupleMembers,
+            new Comparator<Pair<SortedSet<Comparable>, Boolean>>() {
+                public int compare(Pair<SortedSet<Comparable>, Boolean> o1,
+                                   Pair<SortedSet<Comparable>, Boolean> o2) {
+                    RolapCubeMember member1 = (RolapCubeMember)o1.left.first();
+                    RolapCubeMember member2 = (RolapCubeMember)o2.left.first();
+                    int pos1 = member1.getLevel()
+                        .getStarKeyColumn()
+                        .getBitPosition();
+                    int pos2 = member2.getLevel()
+                        .getStarKeyColumn()
+                        .getBitPosition();
+                    return Integer.compare(pos1, pos2);
+                }
+            });
     }
 
     private static class ExcludedRegionList

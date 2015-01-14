@@ -17,19 +17,19 @@ import mondrian.calc.impl.UnaryTupleList;
 import mondrian.olap.*;
 import mondrian.olap.fun.FunUtil;
 import mondrian.resource.MondrianResource;
-import mondrian.rolap.agg.AggregationManager;
-import mondrian.rolap.agg.CellRequest;
+import mondrian.rolap.agg.*;
 import mondrian.rolap.aggmatcher.AggStar;
+import mondrian.rolap.cache.*;
 import mondrian.rolap.sql.*;
 import mondrian.server.Locus;
 import mondrian.server.monitor.SqlStatementEvent;
-import mondrian.util.Pair;
+import mondrian.spi.*;
+import mondrian.util.*;
 
 import org.apache.log4j.Logger;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.*;
 
 import javax.sql.DataSource;
@@ -448,6 +448,11 @@ public class SqlTupleReader implements TupleReader {
                         target.setCurrMember(null);
                         column = target.addRow(stmt, column);
                     }
+                    for(RolapBaseCubeMeasure measure : measureValues.keySet()) {
+                        List<Object> values = measureValues.get(measure);
+                        values.add(
+                            stmt.getAccessors().get(column++).get());
+                    }
                 } else {
                     // find the first enum target, then call addTargets()
                     // to form the cross product of the row from resultSet
@@ -526,11 +531,16 @@ public class SqlTupleReader implements TupleReader {
         }
 
         assert targets.size() == 1;
+//        CellReader reader = ((RolapEvaluator)constraint.getEvaluator()).cellReader;
 
-        return new UnaryTupleList(
-            bumpNullMember(
-                targets.get(0).close()));
+        final TupleList list = new UnaryTupleList(bumpNullMember(
+            targets.get(0).close()));
+
+        maybeCacheMeasures(list);
+
+        return list;
     }
+
 
     protected List<Member> bumpNullMember(List<Member> members) {
         if (members.size() > 0
@@ -592,7 +602,50 @@ public class SqlTupleReader implements TupleReader {
         if (enumTargetCount > 0) {
             tupleList = FunUtil.hierarchizeTupleList(tupleList, false);
         }
+        maybeCacheMeasures(tupleList);
+
         return tupleList;
+    }
+
+    private void maybeCacheMeasures(TupleList tupleList) {
+        for (final RolapBaseCubeMeasure measure : measureValues.keySet()) {
+            final Pair<SegmentHeader,SegmentBody> pair =
+                SegmentBuilder.makeHeaderBodyPair(tupleList, measure,
+                    measureValues.get(measure),
+                    getEvaluator(constraint).getQuery());
+            AggregationManager aggMan =
+            MondrianServer.forConnection(
+                getEvaluator(constraint).getQuery().getConnection())
+                .getAggregationManager();
+
+            final SegmentCacheManager cacheMgr = aggMan.cacheMgr;
+            cacheMgr.execute(
+                new SegmentCacheManager.Command<Void>() {
+                    public Void call() throws Exception {
+                        SegmentCacheIndex index =
+                            cacheMgr.getIndexRegistry()
+                                .getIndex(measure.getCube().getStar());
+                        index.add(
+                            pair.left,
+                            new SegmentBuilder.StarSegmentConverter(
+                                (RolapStar.Measure)measure.getStarMeasure(),
+                                new ArrayList<StarPredicate>()),
+                            true);
+                        index.loadSucceeded(
+                            pair.left, pair.right);
+                        return null;
+                    }
+                    public Locus getLocus() {
+                        final Locus locus = new Locus(
+                            getEvaluator(constraint).getQuery()
+                                .getStatement().getCurrentExecution(),
+                            "foo", "bar");
+                        Locus.push(locus);
+                        return locus;
+                    }
+                });
+
+        }
     }
 
     /**
@@ -926,10 +979,29 @@ public class SqlTupleReader implements TupleReader {
             }
         }
 
+        if (evaluator != null && constraint instanceof SqlContextConstraint
+            && ((SqlContextConstraint)constraint).isJoinRequired()) {
+            for (Member measure : evaluator.getQuery().getMeasuresMembers()) {
+                // TODO:  walk measure calculations and gather up base measures.
+                if (!measure.isCalculated()) {
+                    RolapBaseCubeMeasure rolapMeasure = (RolapBaseCubeMeasure) measure;
+                    RolapAggregator aggregator = rolapMeasure.getAggregator();
+                    sqlQuery.addSelect(aggregator.getExpression(
+                            rolapMeasure.getMondrianDefExpression()
+                                .getGenericExpression()),
+                        SqlStatement.Type.DOUBLE);
+                    measureValues.put(rolapMeasure, new ArrayList<Object>());
+                }
+            }
+        }
+
         constraint.addConstraint(sqlQuery, baseCube, aggStar);
 
         return sqlQuery.toSqlAndTypes();
     }
+
+    private SortedMap<RolapBaseCubeMeasure,List<Object>> measureValues =
+        new TreeMap<RolapBaseCubeMeasure, List<Object>>();
 
     boolean targetIsOnBaseCube(TargetBase target, RolapCube baseCube) {
         return baseCube == null || baseCube.findBaseCubeHierarchy(
