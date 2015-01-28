@@ -161,8 +161,7 @@ public abstract class RolapNativeSet extends RolapNative {
         public SetEvaluator(
             CrossJoinArg[] args,
             SchemaReader schemaReader,
-            TupleConstraint constraint)
-        {
+            TupleConstraint constraint) {
             this.args = args;
             if (schemaReader instanceof SchemaReaderWithMemberReaderAvailable) {
                 this.schemaReader =
@@ -176,25 +175,25 @@ public abstract class RolapNativeSet extends RolapNative {
 
         public Object execute(ResultStyle desiredResultStyle) {
             switch (desiredResultStyle) {
-            case ITERABLE:
-                for (CrossJoinArg arg : this.args) {
-                    if (arg.getLevel().getDimension().isHighCardinality()) {
-                        // If any of the dimensions is a HCD,
-                        // use the proper tuple reader.
+                case ITERABLE:
+                    for (CrossJoinArg arg : this.args) {
+                        if (arg.getLevel().getDimension().isHighCardinality()) {
+                            // If any of the dimensions is a HCD,
+                            // use the proper tuple reader.
+                            return executeList(
+                                new HighCardSqlTupleReader(constraint));
+                        }
+                        // Use the regular tuple reader.
                         return executeList(
-                            new HighCardSqlTupleReader(constraint));
+                            new SqlTupleReader(constraint));
                     }
-                    // Use the regular tuple reader.
-                    return executeList(
-                        new SqlTupleReader(constraint));
-                }
-            case MUTABLE_LIST:
-            case LIST:
-                return executeList(new SqlTupleReader(constraint));
-            default:
-                throw ResultStyleException.generate(
-                    ResultStyle.ITERABLE_MUTABLELIST_LIST,
-                    Collections.singletonList(desiredResultStyle));
+                case MUTABLE_LIST:
+                case LIST:
+                    return executeList(new SqlTupleReader(constraint));
+                default:
+                    throw ResultStyleException.generate(
+                        ResultStyle.ITERABLE_MUTABLELIST_LIST,
+                        Collections.singletonList(desiredResultStyle));
             }
         }
 
@@ -265,6 +264,7 @@ public abstract class RolapNativeSet extends RolapNative {
                                 Util.<List<Member>>cast(newPartialResult)));
                     }
                 } else {
+                    cacheLevelMembers(result);
                     cache.put(key, result);
                 }
             }
@@ -287,7 +287,7 @@ public abstract class RolapNativeSet extends RolapNative {
 
         private boolean needsFiltering(TupleList tupleList) {
             return tupleList.size() > 0
-                   && exists(tupleList.get(0), needsFilterPredicate());
+                && exists(tupleList.get(0), needsFilterPredicate());
         }
 
         private Predicate needsFilterPredicate() {
@@ -295,7 +295,7 @@ public abstract class RolapNativeSet extends RolapNative {
                 public boolean evaluate(Object o) {
                     Member member = (Member) o;
                     return isRaggedLevel(member.getLevel())
-                           || isCustomAccess(member.getHierarchy());
+                        || isCustomAccess(member.getHierarchy());
                 }
             };
         }
@@ -303,7 +303,7 @@ public abstract class RolapNativeSet extends RolapNative {
         private boolean isRaggedLevel(Level level) {
             if (level instanceof RolapLevel) {
                 return ((RolapLevel) level).getHideMemberCondition()
-                       != RolapLevel.HideMemberCondition.Never;
+                    != RolapLevel.HideMemberCondition.Never;
             }
             // don't know if it's ragged, so assume it is.
             // should not reach here
@@ -343,13 +343,13 @@ public abstract class RolapNativeSet extends RolapNative {
         }
 
         private Predicate tupleAccessiblePredicate(
-            final Predicate memberInaccessible)
-        {
+            final Predicate memberInaccessible) {
             return new Predicate() {
                 @SuppressWarnings("unchecked")
                 public boolean evaluate(Object o) {
                     return !exists((List<Member>) o, memberInaccessible);
-                }};
+                }
+            };
         }
 
         private void addLevel(TupleReader tr, CrossJoinArg arg) {
@@ -370,8 +370,7 @@ public abstract class RolapNativeSet extends RolapNative {
             Util.assertTrue(mb != null, "MemberBuilder not found");
 
             if (arg instanceof MemberListCrossJoinArg
-                && ((MemberListCrossJoinArg) arg).hasCalcMembers())
-            {
+                && ((MemberListCrossJoinArg) arg).hasCalcMembers()) {
                 // only need to keep track of the members in the case
                 // where there are calculated members since in that case,
                 // we produce the values by enumerating through the list
@@ -389,7 +388,27 @@ public abstract class RolapNativeSet extends RolapNative {
         void setMaxRows(int maxRows) {
             this.maxRows = maxRows;
         }
+
+        private void cacheLevelMembers(TupleList result) {
+            if (result.getArity() > 1) {
+                // only handle unary for now.
+                return;
+            }
+            MemberReader reader =
+                schemaReader.getMemberReader(result.get(0).get(0).getHierarchy());
+            if (reader instanceof SmartMemberReader) {
+                MemberCacheHelper cache =
+                    ((RolapCubeHierarchy.CacheRolapCubeHierarchyMemberReader)reader)
+                        .getRolapCubeMemberCacheHelper();
+                for (List<Member> members : result) {
+                    cache.addMemberToLevelCache((RolapMember)
+                        members.get(0));
+                }
+            }
+        }
     }
+
+
 
     /**
      * Tests whether non-native evaluation is preferred for the

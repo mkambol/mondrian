@@ -705,6 +705,39 @@ public class NativeSetEvaluationTest extends BatchTestCase {
         assertQueryReturns(mdx, result);
     }
 
+    public void testIndividualMembersAreNotQueriedForWhenInLevelCache() {
+        propSaver.properties.GenerateFormattedSql.set(true);
+
+        // load the level members cache (w/ DefaultTupleConstraint)
+        executeQuery(
+            "WITH\n" +
+                "SET [*NATIVE_CJ_SET] AS '[*BASE_MEMBERS__Education Level_]'\n" +
+                "SET [*SORTED_COL_AXIS] AS 'ORDER([*CJ_COL_AXIS],[Education Level].CURRENTMEMBER.ORDERKEY,BASC)'\n" +
+                "SET [*BASE_MEMBERS__Measures_] AS '{[Measures].[*ZERO]}'\n" +
+                "SET [*BASE_MEMBERS__Education Level_] AS 'TOPCOUNT([Education Level].[Education Level].MEMBERS, 200)'\n" +
+                "SET [*CJ_COL_AXIS] AS 'GENERATE([*NATIVE_CJ_SET], {([Education Level].CURRENTMEMBER)})'\n" +
+                "MEMBER [Measures].[*ZERO] AS '0', SOLVE_ORDER=0\n" +
+                "SELECT\n" +
+                "CROSSJOIN([*SORTED_COL_AXIS],[*BASE_MEMBERS__Measures_]) ON COLUMNS\n" +
+                "FROM [Sales]");
+
+        String mysql = "select\n"
+            + "    `customer`.`education` as `c0`\n"
+            + "from\n"
+            + "    `customer` as `customer`\n"
+            + "where\n"
+            + "    UPPER(`customer`.`education`) = UPPER('";
+
+        assertNoQuerySql("select {[Education Level].[Bachelors Degree]," +
+                "[Education Level].[Graduate Degree]," +
+                "[Education Level].[High School Degree]," +
+                "[Education Level].[Partial College]} on 0 from sales",
+            new SqlPattern[]{
+                new SqlPattern(
+                    Dialect.DatabaseProduct.MYSQL,
+                    mysql, null)});
+    }
+
     /**
      * Same as before but without combinations missing in the crossjoin
      */

@@ -47,6 +47,10 @@ public class MemberCacheHelper implements MemberCache {
     final SmartMemberListCache<RolapLevel, List<RolapMember>>
         mapLevelToMembers;
 
+
+    SoftSmartCache<RolapLevel, Set<RolapMember>> incrementalLevelMembers =
+        new SoftSmartCache<RolapLevel, Set<RolapMember>>();
+
     /**
      * Creates a MemberCacheHelper.
      *
@@ -132,8 +136,36 @@ public class MemberCacheHelper implements MemberCache {
             constraint =
                 sqlConstraintFactory.getMemberChildrenConstraint(null);
         }
-        return mapMemberToChildren.get(member, constraint);
+        final List<RolapMember> rolapMembers = mapMemberToChildren.get(member, constraint);
+        if (rolapMembers == null && constraint instanceof ChildByNameConstraint) {
+            RolapMember child = checkIncrementalLevelCache(
+                member, ((ChildByNameConstraint)constraint).getName());
+            if (child != null) {
+                return Arrays.asList(child);
+            }
+        }
+        return rolapMembers;
     }
+
+    private RolapMember checkIncrementalLevelCache(RolapMember parent, String childName) {
+        int parentLevelDepth = parent.getLevel().getDepth();
+        assert (parent.getHierarchy().getLevels().length > parentLevelDepth + 1);
+        Level childLevel = parent.getHierarchy().getLevels()[parentLevelDepth + 1];
+        Set<RolapMember> levelMembers =
+            incrementalLevelMembers.get((RolapLevel) childLevel);
+        if (levelMembers == null) {
+            return null;
+        }
+        for (RolapMember member : levelMembers) {
+            if (member.getName().equals(childName)
+                && member.getParentMember().equals(parent)) {
+                return member;
+            }
+        }
+        return null;
+    }
+
+
 
     public void putChildren(
         RolapMember member,
@@ -276,6 +308,18 @@ public class MemberCacheHelper implements MemberCache {
         // lists of children. Do need to update inferior lists of level-peers.
         return null; // STUB
     }
+
+    public void addMemberToLevelCache(RolapMember member) {
+        Set<RolapMember> rolapMembers = incrementalLevelMembers.get(member.getLevel());
+        if (rolapMembers == null) {
+            rolapMembers = new HashSet<RolapMember>();
+            incrementalLevelMembers.put(member.getLevel(), rolapMembers);
+        }
+        rolapMembers.add(member);
+    }
+
+
+
 }
 
 // End MemberCacheHelper.java

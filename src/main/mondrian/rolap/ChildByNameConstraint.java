@@ -71,6 +71,9 @@ class ChildByNameConstraint extends DefaultMemberChildrenConstraint {
         return cacheKey;
     }
 
+    public String getName() {
+        return childName;
+    }
 }
 
 // End ChildByNameConstraint.java
