@@ -132,7 +132,29 @@ public class MemberCacheHelper implements MemberCache {
             constraint =
                 sqlConstraintFactory.getMemberChildrenConstraint(null);
         }
-        return mapMemberToChildren.get(member, constraint);
+        List<RolapMember> rolapMembers = mapMemberToChildren.get(member, constraint);
+        if (rolapMembers == null && constraint instanceof ChildByNameConstraint) {
+            rolapMembers = getChildFromLevelMembersCache(member, ((ChildByNameConstraint)constraint).getChildName());
+        }
+        return rolapMembers;
+    }
+
+    private List<RolapMember> getChildFromLevelMembersCache(RolapMember parent, String childName) {
+        int parentLevelDepth = parent.getLevel().getDepth();
+        assert( parent.getHierarchy().getLevels().length > parentLevelDepth + 1);
+        Level childLevel = parent.getHierarchy().getLevels()[parentLevelDepth+1];
+        List<RolapMember> levelMembers =
+            mapLevelToMembers.get((RolapLevel) childLevel,
+            DefaultTupleConstraint.instance());
+        if (levelMembers == null) {
+            return null;
+        }
+        for (RolapMember member : levelMembers) {
+            if (member.getName().equals(childName)) {
+                return Arrays.asList(member);
+            }
+        }
+        return null;
     }
 
     public void putChildren(
