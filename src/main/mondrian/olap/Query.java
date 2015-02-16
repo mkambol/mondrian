@@ -23,7 +23,7 @@ import mondrian.util.ArrayStack;
 
 import org.apache.commons.collections.collection.CompositeCollection;
 
-import org.olap4j.impl.IdentifierParser;
+import org.olap4j.impl.*;
 import org.olap4j.mdx.IdentifierSegment;
 
 import java.io.PrintWriter;
@@ -306,7 +306,18 @@ public class Query extends QueryPart {
     public Validator createValidator() {
         return createValidator(
             statement.getSchema().getFunTable(),
-            false);
+            false,
+            new HashMap<QueryPart, QueryPart>());
+    }
+
+
+    public Validator createValidator(
+        Map<QueryPart, QueryPart> resolvedIdentifiers)
+    {
+        return createValidator(
+            statement.getSchema().getFunTable(),
+            false,
+            resolvedIdentifiers);
     }
 
     /**
@@ -320,12 +331,27 @@ public class Query extends QueryPart {
      */
     public Validator createValidator(
         FunTable functionTable,
-        boolean alwaysResolveFunDef)
+        boolean alwaysResolveFunDef
+        )
     {
         return new QueryValidator(
             functionTable,
             alwaysResolveFunDef,
-            Query.this);
+            Query.this,
+            new HashMap<QueryPart, QueryPart>());
+    }
+
+
+    public Validator createValidator(
+        FunTable functionTable,
+        boolean alwaysResolveFunDef,
+        Map<QueryPart, QueryPart> resolvedIdentifiers)
+    {
+        return new QueryValidator(
+            functionTable,
+            alwaysResolveFunDef,
+            Query.this,
+            resolvedIdentifiers);
     }
 
     /**
@@ -443,7 +469,9 @@ public class Query extends QueryPart {
      * tree in any way.
      */
     public void resolve() {
-        final Validator validator = createValidator();
+        Map<QueryPart, QueryPart> resolvedIdentifiers =
+            new IdBatchResolver(this).resolve();
+        final Validator validator = createValidator(resolvedIdentifiers);
         resolve(validator); // resolve self and children
         // Create a dummy result so we can use its evaluator
         final Evaluator evaluator = RolapUtil.createEvaluator(statement);
@@ -1788,9 +1816,10 @@ public class Query extends QueryPart {
          * @param query Query
          */
         public QueryValidator(
-            FunTable functionTable, boolean alwaysResolveFunDef, Query query)
+            FunTable functionTable, boolean alwaysResolveFunDef, Query query,
+            Map<QueryPart, QueryPart> resolvedIdentifiers)
         {
-            super(functionTable);
+            super(functionTable, resolvedIdentifiers);
             this.alwaysResolveFunDef = alwaysResolveFunDef;
             this.query = query;
             this.schemaReader = new ScopedSchemaReader(this, true);

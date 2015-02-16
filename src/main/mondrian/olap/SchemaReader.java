@@ -460,6 +460,11 @@ public interface SchemaReader {
         Id.Segment childName,
         MatchType matchType);
 
+    List<Member> lookupMemberChildrenByNames(
+        Member parent,
+        List<Id.NameSegment> childNames,
+        MatchType matchType);
+
     /**
      * Returns an object which can evaluate an expression in native SQL, or
      * null if this is not possible.

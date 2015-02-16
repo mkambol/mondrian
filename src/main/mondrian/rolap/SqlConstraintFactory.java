@@ -117,6 +117,16 @@ public class SqlConstraintFactory {
         return new ChildByNameConstraint(childName);
     }
 
+    public MemberChildrenConstraint getChildrenByNamesConstraint(
+        RolapMember parent,
+        List<Id.NameSegment> childNames)
+    {
+        if (!enabled || parent.getHierarchy().isRagged()) {
+            return DefaultMemberChildrenConstraint.instance();
+        }
+        return new ChildByNameConstraint(childNames);
+    }
+
     /**
      * Returns a constraint that allows to read all children of multiple parents
      * at once using a LevelMember query style. This does not work
