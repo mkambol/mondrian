@@ -15,7 +15,7 @@ import mondrian.olap.Id;
 import mondrian.rolap.aggmatcher.AggStar;
 import mondrian.rolap.sql.SqlQuery;
 
-import java.util.Arrays;
+import java.util.*;
 
 /**
  * Constraint which optimizes the search for a child by name. This is used
@@ -69,6 +69,12 @@ class ChildByNameConstraint extends DefaultMemberChildrenConstraint {
 
     public Object getCacheKey() {
         return cacheKey;
+    }
+
+    public List<String> getChildNames() {
+        // Temporary.  ChildByNameConstraint will be refactored to allow
+        // multiple children names to be included in a single constraint.
+        return Collections.singletonList(childName);
     }
 
 }
