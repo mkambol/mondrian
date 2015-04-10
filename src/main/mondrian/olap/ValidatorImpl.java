@@ -50,11 +50,13 @@ abstract class ValidatorImpl implements Validator {
      *
      * @param funTable Function table
      *
+     * @param resolvedIdentifiers
      * @pre funTable != null
      */
-    protected ValidatorImpl(FunTable funTable) {
+    protected ValidatorImpl(FunTable funTable, Map<QueryPart, QueryPart> resolvedIdentifiers) {
         Util.assertPrecondition(funTable != null, "funTable != null");
         this.funTable = funTable;
+        resolvedNodes.putAll(resolvedIdentifiers);
     }
 
     public Exp validate(Exp exp, boolean scalar) {

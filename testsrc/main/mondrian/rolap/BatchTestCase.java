@@ -15,19 +15,19 @@ import mondrian.calc.ResultStyle;
 import mondrian.olap.*;
 import mondrian.rolap.RolapNative.*;
 import mondrian.rolap.agg.*;
+import mondrian.rolap.cache.HardSmartCache;
 import mondrian.server.Execution;
 import mondrian.server.Locus;
 import mondrian.spi.Dialect;
 import mondrian.test.*;
 
+import mondrian.util.Pair;
 import org.apache.log4j.Logger;
 
 import org.eigenbase.util.property.IntegerProperty;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Future;
 
 /**
@@ -737,6 +737,16 @@ public class BatchTestCase extends FoodMartTestCase {
 
         return new CellRequestConstraint(
             aggConstraintTables, aggConstraintColumns, aggConstraintValues);
+    }
+
+    void clearAndHardenCache(MemberCacheHelper helper) {
+        helper.mapLevelToMembers.setCache(
+            new HardSmartCache<Pair<RolapLevel, Object>, List<RolapMember>>());
+        helper.mapMemberToChildren.setCache(
+            new HardSmartCache<Pair<RolapMember, Object>, List<RolapMember>>());
+        helper.mapKeyToMember.clear();
+        helper.mapParentToNamedChildren.setCache(
+            new HardSmartCache<RolapMember, Collection<RolapMember>>());
     }
 
     protected RolapStar.Measure getMeasure(String cube, String measureName) {

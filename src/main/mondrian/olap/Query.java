@@ -23,7 +23,7 @@ import mondrian.util.ArrayStack;
 
 import org.apache.commons.collections.collection.CompositeCollection;
 
-import org.olap4j.impl.IdentifierParser;
+import org.olap4j.impl.*;
 import org.olap4j.mdx.IdentifierSegment;
 
 import java.io.PrintWriter;
@@ -306,7 +306,18 @@ public class Query extends QueryPart {
     public Validator createValidator() {
         return createValidator(
             statement.getSchema().getFunTable(),
-            false);
+            false,
+            new HashMap<QueryPart, QueryPart>());
+    }
+
+
+    public Validator createValidator(
+        Map<QueryPart, QueryPart> resolvedIdentifiers)
+    {
+        return createValidator(
+            statement.getSchema().getFunTable(),
+            false,
+            resolvedIdentifiers);
     }
 
     /**
@@ -320,12 +331,27 @@ public class Query extends QueryPart {
      */
     public Validator createValidator(
         FunTable functionTable,
-        boolean alwaysResolveFunDef)
+        boolean alwaysResolveFunDef
+        )
     {
         return new QueryValidator(
             functionTable,
             alwaysResolveFunDef,
-            Query.this);
+            Query.this,
+            new HashMap<QueryPart, QueryPart>());
+    }
+
+
+    public Validator createValidator(
+        FunTable functionTable,
+        boolean alwaysResolveFunDef,
+        Map<QueryPart, QueryPart> resolvedIdentifiers)
+    {
+        return new QueryValidator(
+            functionTable,
+            alwaysResolveFunDef,
+            Query.this,
+            resolvedIdentifiers);
     }
 
     /**
@@ -443,7 +469,10 @@ public class Query extends QueryPart {
      * tree in any way.
      */
     public void resolve() {
-        final Validator validator = createValidator();
+        Map<QueryPart, QueryPart> resolvedIdentifiers =
+            new IdBatchResolver(this).resolve();
+        final Validator validator = createValidator(resolvedIdentifiers);
+   //     final Validator validator = createValidator(new HashMap<QueryPart, QueryPart>());
         resolve(validator); // resolve self and children
         // Create a dummy result so we can use its evaluator
         final Evaluator evaluator = RolapUtil.createEvaluator(statement);
@@ -1519,7 +1548,7 @@ public class Query extends QueryPart {
                 if (member == null) {
                     continue;
                 }
-                if (!match(member, nameParts)) {
+                if (!Util.matches(member, nameParts)) {
                     continue;
                 }
                 if (!query.getConnection().getRole().canAccess(member)) {
@@ -1530,36 +1559,7 @@ public class Query extends QueryPart {
             return null;
         }
 
-        private static boolean match(
-            Member member, List<Id.Segment> nameParts)
-        {
-            if (Util.equalName(Util.implode(nameParts),
-                member.getUniqueName()))
-            {
-                // exact match
-                return true;
-            }
-            Id.Segment segment = nameParts.get(nameParts.size() - 1);
-            while (member.getParentMember() != null) {
-                if (!segment.matches(member.getName())) {
-                    return false;
-                }
-                member = member.getParentMember();
-                nameParts = nameParts.subList(0, nameParts.size() - 1);
-                segment = nameParts.get(nameParts.size() - 1);
-            }
-            if (segment.matches(member.getName())) {
-                return Util.equalName(
-                    member.getHierarchy().getUniqueName(),
-                    Util.implode(nameParts.subList(0, nameParts.size() - 1)));
-            } else if (member.isAll()) {
-                return Util.equalName(
-                    member.getHierarchy().getUniqueName(),
-                    Util.implode(nameParts));
-            } else {
-                return false;
-            }
-        }
+
 
         public List<Member> getCalculatedMembers(Hierarchy hierarchy) {
             List<Member> result = new ArrayList<Member>();
@@ -1788,9 +1788,10 @@ public class Query extends QueryPart {
          * @param query Query
          */
         public QueryValidator(
-            FunTable functionTable, boolean alwaysResolveFunDef, Query query)
+            FunTable functionTable, boolean alwaysResolveFunDef, Query query,
+            Map<QueryPart, QueryPart> resolvedIdentifiers)
         {
-            super(functionTable);
+            super(functionTable, resolvedIdentifiers);
             this.alwaysResolveFunDef = alwaysResolveFunDef;
             this.query = query;
             this.schemaReader = new ScopedSchemaReader(this, true);
