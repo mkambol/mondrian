@@ -30,9 +30,17 @@ public final class IdBatchResolver {
     private final Formula[] formulas;
     private final QueryAxis[] axes;
     private final Cube cube;
-    private final Collection<String> dimensionNames = new ArrayList<String>();
-    private final Collection<String> hierarchyNames = new ArrayList<String>();
-    private final Collection<String> levelNames = new ArrayList<String>();
+
+    // dimension and hierarchy unique names are collected during init
+    // to assist in classifying Ids as potentially resolvable to members.
+    private final Collection<String> dimensionUniqueNames =
+        new ArrayList<String>();
+    private final Collection<String> hierarchyUniqueNames =
+        new ArrayList<String>();
+    // level names are checked against the identifiers to avoid incorrectly
+    // interpreting a Dimension.Level reference as Dimension.Member.
+    private final Collection<String> levelNames =
+        new ArrayList<String>();
 
     private  SortedSet<Id> identifiers = new TreeSet<Id>(
         new IdComparator());
@@ -43,29 +51,45 @@ public final class IdBatchResolver {
         axes = query.getAxes();
         cube = query.getCube();
         initOlapElementNames();
+        initIdentifiers();
     }
 
     public void initOlapElementNames() {
-        dimensionNames.addAll(getOlapElementNames(cube.getDimensions()));
+        dimensionUniqueNames.addAll(getOlapElementNames(cube.getDimensions(), true));
         for(Dimension dim : cube.getDimensions()) {
-            hierarchyNames.addAll(getOlapElementNames(dim.getHierarchies()));
+            hierarchyUniqueNames.addAll(getOlapElementNames(dim.getHierarchies(), true));
             for(Hierarchy hier: dim.getHierarchies()) {
-                levelNames.addAll(getOlapElementNames(hier.getLevels()));
+                levelNames.addAll(getOlapElementNames(hier.getLevels(), false));
             }
         }
     }
 
-
+    /**
+     * Attempts to resolve the identifiers contained in the query in
+     * batches based on the parent, e.g. looking up and resolving the
+     * states in the set:
+     *   { [Store].[USA].[CA], [Store].[USA].[OR] }
+     * together rather than individually.
+     * Note that there is no guarantee that all identifiers will be
+     * resolved.  Calculated members, for example, are explicitly not
+     * handled here.  The purpose of this class is to improve efficiency
+     * of resolution of non-calculated members, but must be followed
+     * by more thorough expression resolution.
+     *
+     * @return  a Map of the expressions Id elements mapped to their
+     * respective resolved Exp.
+     */
     public Map<QueryPart, QueryPart> resolve() {
-        retrieveIdentifiers();
-        return lookupInParentGroupings(identifiers);
-       // return Collections.emptyMap();
+        return resolveInParentGroupings(identifiers);
     }
 
-    private void retrieveIdentifiers() {
+    private void initIdentifiers() {
         MdxVisitor identifierVisitor = new IdentifierVisitor(identifiers);
         for (QueryAxis axis : axes) {
             axis.accept(identifierVisitor);
+        }
+        if (query.getSlicerAxis() != null) {
+            query.getSlicerAxis().accept(identifierVisitor);
         }
         for (Formula formula : formulas) {
             formula.accept(identifierVisitor);
@@ -80,7 +104,7 @@ public final class IdBatchResolver {
      *  size from smallest to largest, such that parent identifiers will
      *  occur before their children.
      */
-    private  Map<QueryPart, QueryPart> lookupInParentGroupings(
+    private  Map<QueryPart, QueryPart> resolveInParentGroupings(
         SortedSet<Id> identifiers)
     {
         final Map<QueryPart, QueryPart> resolvedIdentifiers =
@@ -94,42 +118,62 @@ public final class IdBatchResolver {
                 continue;
             }
             Exp exp = (Exp)resolvedIdentifiers.get( parent );
-            // for single segment identifiers, compare to list of dimensions / hierarchies
             if (exp == null) {
-                try {
-                    exp = Util.lookup(query, parent.getSegments(), false);
-                } catch (Exception exception) {
-                    LOGGER.debug(
-                        String.format(
-                            "Failed to resolve '%s' during batch ID "
-                                + "resolution.  "
-                                + "This can happen if a parent member is role "
-                                + "restricted and is not necessarily an error.",
-                            parent));
-                }
-                resolvedIdentifiers.put(parent, (QueryPart)exp);
+                exp = lookupExp(resolvedIdentifiers, parent, exp);
             }
             Member parentMember = getMemberFromExp(exp);
-            if (parentMember == null
-                || parentMember.equals(
-                parentMember.getHierarchy().getNullMember())
-                || parentMember.isMeasure())
+            if (supportedMember(parentMember))
             {
-                // couldn't associate this Id with a member.  Move on.
                 continue;
             }
-            final List<Id> children = findChildIds(parent, identifiers);
-            final List<Id.NameSegment> segmentLists =
-                collectChildrenNameSegments(parentMember, children);
-
-            if (segmentLists.size() > 0) {
-                List<Member> childMembers =
-                    lookupChildrenByNames(parentMember, segmentLists);
-                addChildrenToResolvedMap(
-                    resolvedIdentifiers, children, childMembers);
-            }
+            batchResolveChildren(
+                parent, parentMember, identifiers, resolvedIdentifiers);
         }
         return resolvedIdentifiers;
+    }
+
+    /**
+     * Find the children of Id parent in the identfiers set and resolves
+     * all supported children together, adding them to the resolvedIdentifiers
+     * map.
+     */
+    private void batchResolveChildren(
+        Id parent, Member parentMember, SortedSet<Id> identifiers,
+        Map<QueryPart, QueryPart> resolvedIdentifiers)
+    {
+
+        final List<Id> children = findChildIds(parent, identifiers);
+        final List<Id.NameSegment> segmentLists =
+            collectChildrenNameSegments(parentMember, children);
+
+        if (segmentLists.size() > 0) {
+            List<Member> childMembers =
+                lookupChildrenByNames(parentMember, segmentLists);
+            addChildrenToResolvedMap(
+                resolvedIdentifiers, children, childMembers);
+        }
+    }
+
+    private Exp lookupExp(
+        Map<QueryPart, QueryPart> resolvedIdentifiers,
+        Id parent,
+        Exp exp)
+    {
+        try {
+//            exp = Util.createExpr(
+//                query.getSchemaReader(true)
+//                .lookupCompound(query.getCube(),
+//                    parent.getSegments(), false,Category.Unknown ));
+            exp = Util.lookup(query, parent.getSegments(), false);
+        } catch (Exception exception) {
+            LOGGER.info(
+                String.format(
+                    "Failed to resolve '%s' during batch ID "
+                    + "resolution.",
+                    parent));
+        }
+        resolvedIdentifiers.put(parent, (QueryPart)exp);
+        return exp;
     }
 
     private void addChildrenToResolvedMap(
@@ -210,10 +254,20 @@ public final class IdBatchResolver {
      * and skip it.
      */
     private boolean supportedIdentifier(Id id) {
+        Id.Segment seg = getLastSegment(id);
+        if (!(seg instanceof Id.NameSegment)) {
+            return false;
+        }
         return (isPossibleMemberRef(id))
-            && !idIsCalcMember(id)
-            && !id.getSegments().get(0).matches("Measures")
-            && getLastSegment(id) instanceof Id.NameSegment;
+            && !segmentIsCalcMember(id.getSegments())
+            && !id.getSegments().get(0).matches("Measures");
+    }
+
+    private boolean supportedMember(Member member) {
+        return member == null
+            || member.equals(
+            member.getHierarchy().getNullMember())
+            || member.isMeasure();
     }
 
     /**
@@ -243,15 +297,16 @@ public final class IdBatchResolver {
 
 
 
-    public Collection<String> getOlapElementNames(
-        OlapElement[] olapElements)
+    private Collection<String> getOlapElementNames(
+        OlapElement[] olapElements, final boolean uniqueName)
     {
         return CollectionUtils.collect(
             Arrays.asList(olapElements),
             new Transformer() {
                 @Override
                 public Object transform(Object o) {
-                    return ((OlapElement)o).getName();
+                    return uniqueName ? ((OlapElement)o).getUniqueName()
+                        : ((OlapElement)o).getName();
                 }
             });
     }
@@ -266,11 +321,16 @@ public final class IdBatchResolver {
     private boolean isPossibleMemberRef(Id id) {
         int size = id.getSegments().size();
 
-        //todo  need to deal w/ ssas naming and dim.hier
         if (size == 1) {
-            Id.Segment seg = id.getSegments().get(0);
-            return segMatchInNames(seg, dimensionNames)
-                || segMatchInNames(seg, hierarchyNames);
+            //Id.Segment seg = id.getSegments().get(0);
+            return segListMatchInNames(id.getSegments(), dimensionUniqueNames)
+                || segListMatchInNames(id.getSegments(), hierarchyUniqueNames);
+        }
+        if (MondrianProperties.instance().SsasCompatibleNaming.get()
+            && size == 2) {
+            return segListMatchInNames(
+                id.getSegments(), hierarchyUniqueNames);
+
         }
         if (segMatchInNames(getLastSegment(id), levelNames)) {
             // conservative.  false on any match of any level name
@@ -278,34 +338,21 @@ public final class IdBatchResolver {
         }
         // don't support "shortcut" member references references
         return size > 1;
-
-//        for (Dimension dim : cube.getDimensions()) {
-//            if (size == 1
-//                && id.getSegments().get(0).matches(dim.getName())) {
-//                return true;
-//            }
-//            for (Hierarchy hier : dim.getHierarchies()) {
-//                //TODO or size = 2 (ssas naming) or [dim.hier]
-//                if (size == 1
-//                    && id.getSegments().get(0).matches(hier.getName())) {
-//                    return true;
-//                }
-//                for (Level level : hier.getLevels()) {
-//
-//                    if (id.getSegments().get(size-1)
-//                        .matches(level.getName())) {
-//                        // conservative.  false on any match of any level name
-//                        return false;
-//                    }
-//                }
-//            }
-//        }
-//        // don't support "shortcut" member references references
-//        return size > 1;
     }
 
-    private boolean segMatchInNames(Id.Segment seg,
-                                    Collection<String> names) {
+    private boolean segListMatchInNames(List<Id.Segment> segments, Collection<String> names) {
+        String segUniqueName = Util.implode(segments);
+        for (String name : names) {
+           if (Util.equalName(segUniqueName, name)) {
+               return true;
+           }
+        }
+        return false;
+    }
+
+    private boolean segMatchInNames(
+        Id.Segment seg, Collection<String> names)
+    {
         for (String name : names) {
             if (seg.matches(name)) {
                 return true;
@@ -314,15 +361,37 @@ public final class IdBatchResolver {
         return false;
     }
 
-    /**
-     * Conservative check that returns true if any formula
-     * has the same last segment as the target identifier.
-     * Can give false positives if an identifier matches a formula
-     * name under a different parent.
-     */
-    private boolean idIsCalcMember(Id checkId) {
-        return query.getSchemaReader(false)
-            .getCalculatedMember(checkId.getSegments()) != null;
+    private boolean segmentIsCalcMember(final List<Id.Segment> checkSegments) {
+        return CollectionUtils
+            .exists(Arrays.asList(formulas),
+                new Predicate() {
+                    @Override
+                    public boolean evaluate(Object o) {
+                        Formula formula = (Formula)o;
+                        List<Id.Segment> segments = formula.getIdentifier()
+                            .getSegments();
+                        if (segments.size() != checkSegments.size()) {
+                            return false;
+                        }
+                        if (segments.equals(checkSegments)) {
+                            return true;
+                        }
+                        // wasn't directly equal, let's try segment
+                        // at a time to make sure case diff, etc.
+                        // is accounted for
+                        for (int i = 0; i < segments.size(); i++) {
+                            if (!(checkSegments.get(i) instanceof
+                                Id.NameSegment)) {
+                                return false;
+                            }
+                            String name = ((Id.NameSegment)
+                                checkSegments.get(i)).getName();
+                            if (!segments.get(i).matches(name)) {
+                                return false;
+                            }
+                        }
+                        return true;
+                }});
     }
 
     private List<Id> findChildIds(Id parent, SortedSet<Id> identifiers) {
@@ -336,7 +405,6 @@ public final class IdBatchResolver {
                 childIds.add(id);
             }
         }
-
         return childIds;
     }
 
