@@ -15,19 +15,19 @@ import mondrian.calc.ResultStyle;
 import mondrian.olap.*;
 import mondrian.rolap.RolapNative.*;
 import mondrian.rolap.agg.*;
+import mondrian.rolap.cache.HardSmartCache;
 import mondrian.server.Execution;
 import mondrian.server.Locus;
 import mondrian.spi.Dialect;
 import mondrian.test.*;
 
+import mondrian.util.Pair;
 import org.apache.log4j.Logger;
 
 import org.eigenbase.util.property.IntegerProperty;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Future;
 
 /**
@@ -476,7 +476,8 @@ public class BatchTestCase extends FoodMartTestCase {
             // Create a dummy DataSource which will throw a 'bomb' if it is
             // asked to execute a particular SQL statement, but will otherwise
             // behave exactly the same as the current DataSource.
-            RolapUtil.setHook(new TriggerHook(trigger));
+            final TriggerHook hook = new TriggerHook(trigger);
+            RolapUtil.setHook(hook);
             Bomb bomb = null;
             try {
                 if (bypassSchemaCache) {
@@ -503,18 +504,20 @@ public class BatchTestCase extends FoodMartTestCase {
                 RolapUtil.setHook(null);
             }
             if (negative) {
-                if (bomb != null) {
+                if (bomb != null || hook.foundMatch()) {
                     fail("forbidden query [" + sql + "] detected");
                 }
             } else {
-                if (bomb == null) {
+                if (bomb == null && !hook.foundMatch()) {
                     fail("expected query [" + sql + "] did not occur");
                 }
-                assertEquals(
-                    replaceQuotes(
-                        sql.replaceAll("\r\n", "\n")),
-                    replaceQuotes(
-                        bomb.sql.replaceAll("\r\n", "\n")));
+                if (bomb != null) {
+                    assertEquals(
+                        replaceQuotes(
+                            sql.replaceAll("\r\n", "\n")),
+                        replaceQuotes(
+                            bomb.sql.replaceAll("\r\n", "\n")));
+                }
             }
         }
 
@@ -737,6 +740,16 @@ public class BatchTestCase extends FoodMartTestCase {
 
         return new CellRequestConstraint(
             aggConstraintTables, aggConstraintColumns, aggConstraintValues);
+    }
+
+    void clearAndHardenCache(MemberCacheHelper helper) {
+        helper.mapLevelToMembers.setCache(
+            new HardSmartCache<Pair<RolapLevel, Object>, List<RolapMember>>());
+        helper.mapMemberToChildren.setCache(
+            new HardSmartCache<Pair<RolapMember, Object>, List<RolapMember>>());
+        helper.mapKeyToMember.clear();
+        helper.mapParentToNamedChildren.setCache(
+            new HardSmartCache<RolapMember, Collection<RolapMember>>());
     }
 
     protected RolapStar.Measure getMeasure(String cube, String measureName) {
@@ -1077,6 +1090,7 @@ public class BatchTestCase extends FoodMartTestCase {
 
     private static class TriggerHook implements RolapUtil.ExecuteQueryHook {
         private final String trigger;
+        private boolean foundMatch = false;
 
         public TriggerHook(String trigger) {
             this.trigger =
@@ -1100,6 +1114,9 @@ public class BatchTestCase extends FoodMartTestCase {
             // ignore quotes
             String s = replaceQuotes(sql);
             String t = replaceQuotes(trigger);
+            if (s.startsWith(t) && !foundMatch) {
+                foundMatch = true;
+            }
             return s.startsWith(t);
         }
 
@@ -1107,6 +1124,11 @@ public class BatchTestCase extends FoodMartTestCase {
             if (matchTrigger(sql)) {
                 throw new Bomb(sql);
             }
+        }
+
+        public boolean foundMatch() {
+
+            return foundMatch;
         }
     }
 

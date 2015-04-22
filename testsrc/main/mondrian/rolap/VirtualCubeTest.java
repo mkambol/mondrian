@@ -5,7 +5,7 @@
 // You must accept the terms of that agreement to use this software.
 //
 // Copyright (C) 2003-2005 Julian Hyde
-// Copyright (C) 2005-2012 Pentaho
+// Copyright (C) 2005-2015 Pentaho
 // All Rights Reserved.
 */
 
@@ -1359,6 +1359,10 @@ public class VirtualCubeTest extends BatchTestCase {
             // Generated SQL is different if NON EMPTY is evaluated in memory.
             return;
         }
+        // we want to make sure a SqlConstraint is used for retrieving
+        // [Product Family].members
+        propSaver.set(propSaver.properties.LevelPreCacheThreshold, 0);
+
         propSaver.set(propSaver.properties.GenerateFormattedSql, true);
         String query =
             "with "

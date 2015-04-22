@@ -132,7 +132,10 @@ public class SqlStatement {
         String status = "failed";
         Statement statement = null;
         try {
+//            startTimeNanos = System.nanoTime();
+//            startTimeMillis = System.currentTimeMillis();
             // Check execution state
+
             locus.execution.checkCancelOrTimeout();
 
             this.jdbcConnection = dataSource.getConnection();
@@ -161,11 +164,13 @@ public class SqlStatement {
                 hook.onExecuteQuery(sql);
             }
 
-            // Check execution state
-            locus.execution.checkCancelOrTimeout();
 
             startTimeNanos = System.nanoTime();
             startTimeMillis = System.currentTimeMillis();
+
+            // Check execution state
+            locus.execution.checkCancelOrTimeout();
+
 
             if (resultSetType < 0 || resultSetConcurrency < 0) {
                 statement = jdbcConnection.createStatement();

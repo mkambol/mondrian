@@ -80,15 +80,7 @@ public class SqlConstraintFactory {
         Evaluator context,
         Level[] levels)
     {
-        if (context == null) {
-            return DefaultTupleConstraint.instance();
-        }
-        if (!enabled(context)) {
-            return DefaultTupleConstraint.instance();
-        }
-        if (!SqlContextConstraint.isValidContext(
-                context, false, levels, false))
-        {
+        if (useDefaultTupleConstraint(context, levels)) {
             return DefaultTupleConstraint.instance();
         }
         if (context.isNonEmpty()) {
@@ -105,16 +97,99 @@ public class SqlConstraintFactory {
         return new SqlContextConstraint((RolapEvaluator) context, false);
     }
 
+    private boolean useDefaultTupleConstraint(Evaluator context, Level[] levels) {
+        if (context == null) {
+            return true;
+        }
+        if (!enabled(context)) {
+            return true;
+        }
+        if (!SqlContextConstraint.isValidContext(
+            context, false, levels, false))
+        {
+            return true;
+        }
+        final int threshold = MondrianProperties.instance()
+            .LevelPreCacheThreshold.get();
+        if (threshold <= 0) {
+            return false;
+        }
+        if (levels != null) {
+            long totalCard = 1;
+            for (Level level : levels) {
+                totalCard *=
+                    getLevelCardinality((RolapLevel) level);
+                if (totalCard > threshold)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     public MemberChildrenConstraint getChildByNameConstraint(
         RolapMember parent,
         Id.NameSegment childName)
     {
         // Ragged hierarchies span multiple levels, so SQL WHERE does not work
         // there
-        if (!enabled || parent.getHierarchy().isRagged()) {
+        if (useDefaultMemberChildrenConstraint(parent)) {
             return DefaultMemberChildrenConstraint.instance();
         }
         return new ChildByNameConstraint(childName);
+    }
+
+    public MemberChildrenConstraint getChildrenByNamesConstraint(
+        RolapMember parent,
+        List<Id.NameSegment> childNames)
+    {
+        if (useDefaultMemberChildrenConstraint(parent)) {
+            return DefaultMemberChildrenConstraint.instance();
+        }
+        return new ChildByNameConstraint(childNames);
+    }
+
+    private boolean useDefaultMemberChildrenConstraint(RolapMember parent) {
+        int threshold = MondrianProperties.instance()
+            .LevelPreCacheThreshold.get();
+        return !enabled
+            || parent.getHierarchy().isRagged()
+            || (!isDegenerate(parent.getLevel())
+            && threshold > 0
+            && getChildLevelCardinality(parent) < threshold);
+    }
+
+    private boolean isDegenerate(Level childLevel) {
+        if (childLevel instanceof RolapCubeLevel) {
+            RolapCubeHierarchy hier = (RolapCubeHierarchy)childLevel
+                .getHierarchy();
+            return hier.isUsingCubeFact();
+            //MondrianDef.Relation uniqueHierTable = hier.getUniqueTable();
+//            String levelTable = uniqueHierTable == null
+//                ? "" : hier.getUniqueTable().getAlias();
+//            return (levelTable.equals(hier.getCube()
+//                .getStar().getFactTable().getAlias()));
+        }
+        return false;
+    }
+
+    private int getChildLevelCardinality(RolapMember parent) {
+        RolapLevel level = (RolapLevel)parent.getLevel().getChildLevel();
+        if (level == null) {
+            // couldn't determine child level, give most pessimistic answer
+            return Integer.MAX_VALUE;
+        }
+        return getLevelCardinality(level);
+    }
+
+    private int getLevelCardinality(RolapLevel level) {
+        return getSchemaReader(level)
+            .getLevelCardinality(level, true, true);
+    }
+
+    private SchemaReader getSchemaReader(RolapLevel level) {
+        return level.getHierarchy().getRolapSchema().getSchemaReader();
     }
 
     /**

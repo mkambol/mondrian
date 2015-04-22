@@ -657,6 +657,11 @@ public class NativeSetEvaluationTest extends BatchTestCase {
      * make it more permissable.
      */
     public void testLoopDetection() {
+        // Note that this test will fail if the query below is executed
+        // non-natively, or if the level.members expressions are replaced
+        // with enumerated sets.
+        // See http://jira.pentaho.com/browse/MONDRIAN-2337
+        propSaver.set(propSaver.properties.LevelPreCacheThreshold, 0);
         if (!MondrianProperties.instance().EnableNativeTopCount.get()) {
             return;
         }

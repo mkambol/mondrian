@@ -1439,6 +1439,19 @@ only if external statistics were not available.</p>
     </PropertyDefinition>
 
     <PropertyDefinition>
+        <Name>LevelPreCacheThreshold</Name>
+        <Path>mondrian.rolap.precache.threshold</Path>
+        <Description>
+            <p>TODO - cleanup text
+                Property which governs whether all members of a level are precached
+                when child members</p>
+        </Description>
+        <Core>true</Core>
+        <Type>int</Type>
+        <Default>1000</Default>
+    </PropertyDefinition>
+
+    <PropertyDefinition>
         <Name>WebappDeploy</Name>
         <Path>mondrian.webapp.deploy</Path>
         <Description>
