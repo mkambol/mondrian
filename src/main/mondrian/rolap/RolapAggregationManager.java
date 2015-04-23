@@ -79,8 +79,56 @@ public abstract class RolapAggregationManager {
         List<Exp> fieldsList)
     {
         assert cube != null;
+
+        List<OlapElement> fieldsMembers = getApplicableReturnClauseElements(
+            cube, members, fieldsList, extendedContext);
+        
         return (DrillThroughCellRequest) makeCellRequest(
-            members, true, extendedContext, cube, fieldsList, null);
+            members, true, extendedContext, cube, fieldsMembers, null);
+    }
+
+    private static List<OlapElement> getApplicableReturnClauseElements(
+        RolapCube cube, Member[] members, List<Exp> returnClauseList, boolean extendedContext)
+    {
+        if (!extendedContext || returnClauseList == null) {
+            return Collections.emptyList();
+        }
+
+        RolapCube drillthroughCube =
+            RolapCell.chooseDrillThroughCube(members, cube);
+        if (drillthroughCube == null) {
+            drillthroughCube = cube;
+        }
+        final SchemaReader reader = drillthroughCube
+            .getSchemaReader().withLocus();
+        List<OlapElement> returnClauseElements = new ArrayList<OlapElement>();
+
+        for (Exp exp : returnClauseList) {
+            final OlapElement member =
+                reader.lookupCompound(
+                    cube,
+                    Util.parseIdentifier(exp.toString()),
+                    true,
+                    Category.Unknown);
+            if (member.getHierarchy() instanceof RolapCubeHierarchy
+                && ((RolapCubeHierarchy)member.getHierarchy())
+                .getRolapHierarchy().closureFor != null)
+            {
+                continue;
+            }
+            if (drillthroughCube.getHierarchies().contains(
+                member.getHierarchy())) {
+                returnClauseElements.add(member);
+            }
+            for (Member measureMember : drillthroughCube.getMeasures())  {
+                if (measureMember.getUniqueName()
+                    .equals(member.getUniqueName()))
+                // add the drillthrough cubes measure, not the one
+                // potentially from a virtual cube
+                returnClauseElements.add(measureMember);
+            }
+        }
+        return returnClauseElements;
     }
 
     /**
@@ -189,7 +237,7 @@ public abstract class RolapAggregationManager {
         boolean drillThrough,
         final boolean extendedContext,
         RolapCube cube,
-        List<Exp> fieldsList,
+        List<OlapElement> fieldsList,
         Evaluator evaluator)
     {
         // Need cube for drill-through requests
@@ -242,20 +290,7 @@ public abstract class RolapAggregationManager {
                 // to include in the result set, other that we don't. This
                 // happens when the MDX is a DRILLTHROUGH operation and
                 // includes a RETURN clause.
-                final SchemaReader reader = cube.getSchemaReader().withLocus();
-                for (Exp exp : fieldsList) {
-                    final OlapElement member =
-                        reader.lookupCompound(
-                            cube,
-                            Util.parseIdentifier(exp.toString()),
-                            true,
-                            Category.Unknown);
-                    if (member.getHierarchy() instanceof RolapCubeHierarchy
-                        && ((RolapCubeHierarchy)member.getHierarchy())
-                            .getRolapHierarchy().closureFor != null)
-                    {
-                        continue;
-                    }
+                for (OlapElement member : fieldsList) {
                     addNonConstrainingColumns(member, cube, request);
                 }
             }

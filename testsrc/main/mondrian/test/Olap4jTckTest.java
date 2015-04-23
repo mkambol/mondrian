@@ -36,8 +36,8 @@ public class Olap4jTckTest extends TestCase {
                 return !testCaseName.equals("testStatementTimeout")
                     // olap4j-tck does not close ResultSet, and that's a
                     // resource leak
-                    && !testCaseName.startsWith(
-                        "testCubesDrillthroughReturnClause")
+//                    && !testCaseName.startsWith(
+//                        "testCubesDrillthroughReturnClause")
                     && !testCaseName.equals("testStatementCancel")
                     && !testCaseName.equals("testDatabaseMetaDataGetCatalogs")
                     && !testCaseName.equals("testCellSetBug");

@@ -13,8 +13,10 @@
 package mondrian.test;
 
 import mondrian.olap.*;
+import mondrian.olap.Connection;
 import mondrian.rolap.*;
 import mondrian.spi.Dialect;
+import org.olap4j.OlapConnection;
 
 import java.sql.*;
 import javax.sql.DataSource;
@@ -285,9 +287,9 @@ public class DrillThroughTest extends FoodMartTestCase {
     public void testDrillThrough2() {
         Result result = executeQuery(
             "WITH MEMBER [Measures].[Price] AS '[Measures].[Store Sales] / ([Measures].[Unit Sales], [Time].[Time].PrevMember)'\n"
-            + "SELECT {[Measures].[Unit Sales], [Measures].[Price]} on columns,\n"
-            + " {[Product].Children} on rows\n"
-            + "from Sales");
+                + "SELECT {[Measures].[Unit Sales], [Measures].[Price]} on columns,\n"
+                + " {[Product].Children} on rows\n"
+                + "from Sales");
         String sql = result.getCell(new int[]{0, 0}).getDrillThroughSQL(true);
 
         String nameExpStr = getNameExp(result, "Customers", "Name");
@@ -650,23 +652,23 @@ public class DrillThroughTest extends FoodMartTestCase {
         TestContext testContext = TestContext.instance().createSubstitutingCube(
             "Sales",
             "  <Dimension name=\"Store2\" foreignKey=\"store_id\">\n"
-            + "    <Hierarchy hasAll=\"true\" primaryKey=\"store_id\">\n"
-            + "      <Table name=\"store_ragged\"/>\n"
-            + "      <Level name=\"Store Country\" column=\"store_country\" uniqueMembers=\"true\"/>\n"
-            + "      <Level name=\"Store Id\" column=\"store_id\" captionColumn=\"store_name\" uniqueMembers=\"true\" type=\"Integer\"/>\n"
-            + "    </Hierarchy>\n"
-            + "  </Dimension>\n"
-            + "  <Dimension name=\"Store3\" foreignKey=\"store_id\">\n"
-            + "    <Hierarchy hasAll=\"true\" primaryKey=\"store_id\">\n"
-            + "      <Table name=\"store\"/>\n"
-            + "      <Level name=\"Store Country\" column=\"store_country\" uniqueMembers=\"true\"/>\n"
-            + "      <Level name=\"Store Id\" column=\"store_id\" captionColumn=\"store_name\" uniqueMembers=\"true\" type=\"Numeric\"/>\n"
-            + "    </Hierarchy>\n"
-            + "  </Dimension>\n");
+                + "    <Hierarchy hasAll=\"true\" primaryKey=\"store_id\">\n"
+                + "      <Table name=\"store_ragged\"/>\n"
+                + "      <Level name=\"Store Country\" column=\"store_country\" uniqueMembers=\"true\"/>\n"
+                + "      <Level name=\"Store Id\" column=\"store_id\" captionColumn=\"store_name\" uniqueMembers=\"true\" type=\"Integer\"/>\n"
+                + "    </Hierarchy>\n"
+                + "  </Dimension>\n"
+                + "  <Dimension name=\"Store3\" foreignKey=\"store_id\">\n"
+                + "    <Hierarchy hasAll=\"true\" primaryKey=\"store_id\">\n"
+                + "      <Table name=\"store\"/>\n"
+                + "      <Level name=\"Store Country\" column=\"store_country\" uniqueMembers=\"true\"/>\n"
+                + "      <Level name=\"Store Id\" column=\"store_id\" captionColumn=\"store_name\" uniqueMembers=\"true\" type=\"Numeric\"/>\n"
+                + "    </Hierarchy>\n"
+                + "  </Dimension>\n");
         Result result = testContext.executeQuery(
             "SELECT {[Store2].[Store Id].Members} on columns,\n"
-            + " NON EMPTY([Store3].[Store Id].Members) on rows\n"
-            + "from Sales");
+                + " NON EMPTY([Store3].[Store Id].Members) on rows\n"
+                + "from Sales");
         String sql = result.getCell(new int[] {0, 0}).getDrillThroughSQL(false);
 
         String expectedSql =
@@ -695,9 +697,9 @@ public class DrillThroughTest extends FoodMartTestCase {
     public void testDrillThroughVirtualCube() {
         Result result = executeQuery(
             "select Crossjoin([Customers].[All Customers].[USA].[OR].Children, {[Measures].[Unit Sales]}) ON COLUMNS, "
-            + " [Gender].[All Gender].Children ON ROWS"
-            + " from [Warehouse and Sales]"
-            + " where [Time].[1997].[Q4].[12]");
+                + " [Gender].[All Gender].Children ON ROWS"
+                + " from [Warehouse and Sales]"
+                + " where [Time].[1997].[Q4].[12]");
 
         String sql = result.getCell(new int[]{0, 0}).getDrillThroughSQL(false);
 
@@ -859,18 +861,18 @@ public class DrillThroughTest extends FoodMartTestCase {
         TestContext testContext = TestContext.instance().createSubstitutingCube(
             "Sales",
             "  <Dimension name=\"Education Level2\" foreignKey=\"customer_id\">\n"
-            + "    <Hierarchy hasAll=\"true\" primaryKey=\"customer_id\">\n"
-            + "      <Table name=\"customer\"/>\n"
-            + "      <Level name=\"Education Level but with a very long name that will be too long if converted directly into a column\" column=\"education\" uniqueMembers=\"true\"/>\n"
-            + "    </Hierarchy>\n"
-            + "  </Dimension>",
+                + "    <Hierarchy hasAll=\"true\" primaryKey=\"customer_id\">\n"
+                + "      <Table name=\"customer\"/>\n"
+                + "      <Level name=\"Education Level but with a very long name that will be too long if converted directly into a column\" column=\"education\" uniqueMembers=\"true\"/>\n"
+                + "    </Hierarchy>\n"
+                + "  </Dimension>",
             null);
 
         Result result = testContext.executeQuery(
             "SELECT {[Measures].[Unit Sales]} on columns,\n"
-            + "{[Education Level2].Children} on rows\n"
-            + "FROM [Sales]\n"
-            + "WHERE ([Time].[1997].[Q1].[1], [Product].[Non-Consumable].[Carousel].[Specialty].[Sunglasses].[ADJ].[ADJ Rosy Sunglasses]) ");
+                + "{[Education Level2].Children} on rows\n"
+                + "FROM [Sales]\n"
+                + "WHERE ([Time].[1997].[Q1].[1], [Product].[Non-Consumable].[Carousel].[Specialty].[Sunglasses].[ADJ].[ADJ Rosy Sunglasses]) ");
 
         String sql = result.getCell(new int[] {0, 0}).getDrillThroughSQL(false);
 
@@ -1506,6 +1508,31 @@ public class DrillThroughTest extends FoodMartTestCase {
         }
         getTestContext().assertSqlEquals(expectedSql, sql, 11);
     }
+
+    public void testCubesDrillthroughVirtualCube() throws Exception {
+        ResultSet rs = getTestContext().executeStatement(
+            "DRILLTHROUGH \n" +
+                "// Request ID: a819a2df-e9cc-11e4-a469-d4bed923da37 - RUN_REPORT\n" +
+                "WITH\n" +
+                "SET [*NATIVE_CJ_SET] AS '{}'\n" +
+                "SET [*BASE_MEMBERS__Measures_] AS '{[Measures].[*FORMATTED_MEASURE_0]}'\n" +
+                "MEMBER [Measures].[*FORMATTED_MEASURE_0] AS '[Measures].[Unit Sales]', FORMAT_STRING = 'Standard', SOLVE_ORDER=500\n" +
+                "SELECT\n" +
+                "FILTER([*BASE_MEMBERS__Measures_],([Measures].CurrentMember Is [Measures].[*FORMATTED_MEASURE_0])) ON COLUMNS\n" +
+                "FROM [Warehouse and Sales] RETURN [Customers].[Country], [Customers].[State Province], [Customers].[City], [Customers].[Name], [Education Level].[Education Level], [Gender].[Gender], [Marital Status].[Marital Status], [Product].[Product Family], [Product].[Product Department], [Product].[Product Category], [Product].[Product Subcategory], [Product].[Brand Name], [Product].[Product Name], [Promotion Media].[Media Type], [Promotions].[Promotion Name], [Store].[Store Country], [Store].[Store State], [Store].[Store City], [Store].[Store Name], [Time].[Year], [Time].[Quarter], [Time].[Month], [Time.Weekly].[Year], [Time.Weekly].[Week], [Time.Weekly].[Day], [Yearly Income].[Yearly Income], [Warehouse].[Country], [Warehouse].[State Province], [Warehouse].[City], [Warehouse].[Warehouse Name], [Measures].[Sales Count], [Measures].[Store Cost], [Measures].[Store Sales], [Measures].[Unit Sales], [Measures].[Store Invoice], [Measures].[Supply Time], [Measures].[Units Ordered], [Measures].[Units Shipped], [Measures].[Warehouse Cost], [Measures].[Warehouse Profit], [Measures].[Warehouse Sales]");
+        assertEquals(
+            rs.getMetaData().getColumnCount(), 29);
+//        while (rs.next()) {
+//            StringBuilder builder = new StringBuilder();
+//            for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+//                builder.append(rs.getObject(i) + "|");
+//
+//            }
+//            System.out.println(builder.toString());
+//        }
+        rs.close();
+    }
+
 }
 
 // End DrillThroughTest.java

@@ -344,6 +344,7 @@ public class RolapCell implements Cell {
         return false;
     }
 
+    // TODO - this doesn't seem to look at the measure in context.
     public static RolapCube chooseDrillThroughCube(
         Member[] currentMembers,
         RolapCube defaultCube)
