@@ -679,7 +679,7 @@ public class RolapSchemaReader
             AbstractCalc.simplifyEvaluator(calc, evaluator);
         if (evaluator.nativeEnabled()) {
             return schema.getNativeRegistry().createEvaluator(
-                revaluator, fun, args);
+                revaluator, fun, args, calc);
         }
         return null;
     }

@@ -11,6 +11,7 @@
 */
 package mondrian.rolap;
 
+import mondrian.calc.Calc;
 import mondrian.mdx.MdxVisitorImpl;
 import mondrian.mdx.MemberExpr;
 import mondrian.olap.*;
@@ -124,7 +125,7 @@ public class RolapNativeFilter extends RolapNativeSet {
     NativeEvaluator createEvaluator(
         RolapEvaluator evaluator,
         FunDef fun,
-        Exp[] args)
+        Exp[] args, Calc calc)
     {
         if (!isEnabled()) {
             return null;

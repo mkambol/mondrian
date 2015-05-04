@@ -10,6 +10,7 @@
 */
 package mondrian.rolap;
 
+import mondrian.calc.Calc;
 import mondrian.olap.*;
 import mondrian.olap.fun.*;
 import mondrian.rolap.sql.*;
@@ -93,7 +94,7 @@ public class RolapNativeCrossJoin extends RolapNativeSet {
     NativeEvaluator createEvaluator(
         RolapEvaluator evaluator,
         FunDef fun,
-        Exp[] args)
+        Exp[] args, Calc calc)
     {
         if (!isEnabled()) {
             // native crossjoins were explicitly disabled, so no need
@@ -174,7 +175,7 @@ public class RolapNativeCrossJoin extends RolapNativeSet {
         }
 
         if (SqlConstraintUtils.measuresConflictWithMembers(
-                evaluator.getQuery().getMeasuresMembers(), cjArgs))
+                evaluator.getQuery().getMeasuresMembers(), cjArgs, calc))
         {
             alertCrossJoinNonNative(
                 evaluator,

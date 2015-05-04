@@ -92,7 +92,7 @@ public class SqlContextConstraint
         }
 
         if (SqlConstraintUtils.measuresConflictWithMembers(
-                context.getQuery().getMeasuresMembers(), context.getMembers()))
+            context.getQuery().getMeasuresMembers(), context.getMembers(), null))
         {
             // one or more dimension members referenced within measure calcs
             // conflict with the context members.  Not safe to apply

@@ -11,6 +11,7 @@
 
 package mondrian.rolap;
 
+import mondrian.calc.Calc;
 import mondrian.olap.*;
 
 import java.util.HashMap;
@@ -42,7 +43,7 @@ public class RolapNativeRegistry extends RolapNative {
      * be executed in SQL for the given context and arguments.
      */
     public NativeEvaluator createEvaluator(
-        RolapEvaluator evaluator, FunDef fun, Exp[] args)
+        RolapEvaluator evaluator, FunDef fun, Exp[] args, Calc calc)
     {
         if (!isEnabled()) {
             return null;
@@ -54,7 +55,7 @@ public class RolapNativeRegistry extends RolapNative {
             return null;
         }
 
-        NativeEvaluator ne = rn.createEvaluator(evaluator, fun, args);
+        NativeEvaluator ne = rn.createEvaluator(evaluator, fun, args, calc);
 
         if (ne != null) {
             if (listener != null) {

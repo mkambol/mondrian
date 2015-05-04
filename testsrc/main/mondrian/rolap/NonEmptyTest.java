@@ -3646,90 +3646,90 @@ public class NonEmptyTest extends BatchTestCase {
         // result when NON EMPTY is turned off.
         assertQueryReturns(
             "WITH \n"
-            + "MEMBER Measures.Calc AS '[Measures].[Profit] * 2', SOLVE_ORDER=1000\n"
-            + "MEMBER Product.Conditional as 'Iif (Measures.CurrentMember IS Measures.[Calc], "
-            + "Measures.CurrentMember, null)', SOLVE_ORDER=2000\n"
-            + "SET [S2] AS '{[Store].MEMBERS}' \n"
-            + "SET [S1] AS 'CROSSJOIN({[Customers].[All Customers]},{Product.Conditional})' \n"
-            + "SELECT \n"
-            + "NON EMPTY GENERATE({Measures.[Calc]}, \n"
-            + "          CROSSJOIN(HEAD( {([Measures].CURRENTMEMBER)}, \n"
-            + "                           1\n"
-            + "                        ), \n"
-            + "                     {[S1]}\n"
-            + "                  ), \n"
-            + "                   ALL\n"
-            + "                 ) \n"
-            + "                                   ON AXIS(0), \n"
-            + "NON EMPTY [S2] ON AXIS(1) \n"
-            + "FROM [Sales]",
+                + "MEMBER Measures.Calc AS '[Measures].[Profit] * 2', SOLVE_ORDER=1000\n"
+                + "MEMBER Product.Conditional as 'Iif (Measures.CurrentMember IS Measures.[Calc], "
+                + "Measures.CurrentMember, null)', SOLVE_ORDER=2000\n"
+                + "SET [S2] AS '{[Store].MEMBERS}' \n"
+                + "SET [S1] AS 'CROSSJOIN({[Customers].[All Customers]},{Product.Conditional})' \n"
+                + "SELECT \n"
+                + "NON EMPTY GENERATE({Measures.[Calc]}, \n"
+                + "          CROSSJOIN(HEAD( {([Measures].CURRENTMEMBER)}, \n"
+                + "                           1\n"
+                + "                        ), \n"
+                + "                     {[S1]}\n"
+                + "                  ), \n"
+                + "                   ALL\n"
+                + "                 ) \n"
+                + "                                   ON AXIS(0), \n"
+                + "NON EMPTY [S2] ON AXIS(1) \n"
+                + "FROM [Sales]",
             "Axis #0:\n"
-            + "{}\n"
-            + "Axis #1:\n"
-            + "{[Measures].[Calc], [Customers].[All Customers], [Product].[Conditional]}\n"
-            + "Axis #2:\n"
-            + "{[Store].[All Stores]}\n"
-            + "{[Store].[USA]}\n"
-            + "{[Store].[USA].[CA]}\n"
-            + "{[Store].[USA].[CA].[Beverly Hills]}\n"
-            + "{[Store].[USA].[CA].[Beverly Hills].[Store 6]}\n"
-            + "{[Store].[USA].[CA].[Los Angeles]}\n"
-            + "{[Store].[USA].[CA].[Los Angeles].[Store 7]}\n"
-            + "{[Store].[USA].[CA].[San Diego]}\n"
-            + "{[Store].[USA].[CA].[San Diego].[Store 24]}\n"
-            + "{[Store].[USA].[CA].[San Francisco]}\n"
-            + "{[Store].[USA].[CA].[San Francisco].[Store 14]}\n"
-            + "{[Store].[USA].[OR]}\n"
-            + "{[Store].[USA].[OR].[Portland]}\n"
-            + "{[Store].[USA].[OR].[Portland].[Store 11]}\n"
-            + "{[Store].[USA].[OR].[Salem]}\n"
-            + "{[Store].[USA].[OR].[Salem].[Store 13]}\n"
-            + "{[Store].[USA].[WA]}\n"
-            + "{[Store].[USA].[WA].[Bellingham]}\n"
-            + "{[Store].[USA].[WA].[Bellingham].[Store 2]}\n"
-            + "{[Store].[USA].[WA].[Bremerton]}\n"
-            + "{[Store].[USA].[WA].[Bremerton].[Store 3]}\n"
-            + "{[Store].[USA].[WA].[Seattle]}\n"
-            + "{[Store].[USA].[WA].[Seattle].[Store 15]}\n"
-            + "{[Store].[USA].[WA].[Spokane]}\n"
-            + "{[Store].[USA].[WA].[Spokane].[Store 16]}\n"
-            + "{[Store].[USA].[WA].[Tacoma]}\n"
-            + "{[Store].[USA].[WA].[Tacoma].[Store 17]}\n"
-            + "{[Store].[USA].[WA].[Walla Walla]}\n"
-            + "{[Store].[USA].[WA].[Walla Walla].[Store 22]}\n"
-            + "{[Store].[USA].[WA].[Yakima]}\n"
-            + "{[Store].[USA].[WA].[Yakima].[Store 23]}\n"
-            + "Row #0: $679,221.79\n"
-            + "Row #1: $679,221.79\n"
-            + "Row #2: $191,274.83\n"
-            + "Row #3: $54,967.60\n"
-            + "Row #4: $54,967.60\n"
-            + "Row #5: $65,547.49\n"
-            + "Row #6: $65,547.49\n"
-            + "Row #7: $65,435.21\n"
-            + "Row #8: $65,435.21\n"
-            + "Row #9: $5,324.53\n"
-            + "Row #10: $5,324.53\n"
-            + "Row #11: $171,009.14\n"
-            + "Row #12: $66,219.69\n"
-            + "Row #13: $66,219.69\n"
-            + "Row #14: $104,789.45\n"
-            + "Row #15: $104,789.45\n"
-            + "Row #16: $316,937.82\n"
-            + "Row #17: $5,685.23\n"
-            + "Row #18: $5,685.23\n"
-            + "Row #19: $63,548.67\n"
-            + "Row #20: $63,548.67\n"
-            + "Row #21: $63,374.53\n"
-            + "Row #22: $63,374.53\n"
-            + "Row #23: $59,677.94\n"
-            + "Row #24: $59,677.94\n"
-            + "Row #25: $89,769.36\n"
-            + "Row #26: $89,769.36\n"
-            + "Row #27: $5,651.26\n"
-            + "Row #28: $5,651.26\n"
-            + "Row #29: $29,230.83\n"
-            + "Row #30: $29,230.83\n");
+                + "{}\n"
+                + "Axis #1:\n"
+                + "{[Measures].[Calc], [Customers].[All Customers], [Product].[Conditional]}\n"
+                + "Axis #2:\n"
+                + "{[Store].[All Stores]}\n"
+                + "{[Store].[USA]}\n"
+                + "{[Store].[USA].[CA]}\n"
+                + "{[Store].[USA].[CA].[Beverly Hills]}\n"
+                + "{[Store].[USA].[CA].[Beverly Hills].[Store 6]}\n"
+                + "{[Store].[USA].[CA].[Los Angeles]}\n"
+                + "{[Store].[USA].[CA].[Los Angeles].[Store 7]}\n"
+                + "{[Store].[USA].[CA].[San Diego]}\n"
+                + "{[Store].[USA].[CA].[San Diego].[Store 24]}\n"
+                + "{[Store].[USA].[CA].[San Francisco]}\n"
+                + "{[Store].[USA].[CA].[San Francisco].[Store 14]}\n"
+                + "{[Store].[USA].[OR]}\n"
+                + "{[Store].[USA].[OR].[Portland]}\n"
+                + "{[Store].[USA].[OR].[Portland].[Store 11]}\n"
+                + "{[Store].[USA].[OR].[Salem]}\n"
+                + "{[Store].[USA].[OR].[Salem].[Store 13]}\n"
+                + "{[Store].[USA].[WA]}\n"
+                + "{[Store].[USA].[WA].[Bellingham]}\n"
+                + "{[Store].[USA].[WA].[Bellingham].[Store 2]}\n"
+                + "{[Store].[USA].[WA].[Bremerton]}\n"
+                + "{[Store].[USA].[WA].[Bremerton].[Store 3]}\n"
+                + "{[Store].[USA].[WA].[Seattle]}\n"
+                + "{[Store].[USA].[WA].[Seattle].[Store 15]}\n"
+                + "{[Store].[USA].[WA].[Spokane]}\n"
+                + "{[Store].[USA].[WA].[Spokane].[Store 16]}\n"
+                + "{[Store].[USA].[WA].[Tacoma]}\n"
+                + "{[Store].[USA].[WA].[Tacoma].[Store 17]}\n"
+                + "{[Store].[USA].[WA].[Walla Walla]}\n"
+                + "{[Store].[USA].[WA].[Walla Walla].[Store 22]}\n"
+                + "{[Store].[USA].[WA].[Yakima]}\n"
+                + "{[Store].[USA].[WA].[Yakima].[Store 23]}\n"
+                + "Row #0: $679,221.79\n"
+                + "Row #1: $679,221.79\n"
+                + "Row #2: $191,274.83\n"
+                + "Row #3: $54,967.60\n"
+                + "Row #4: $54,967.60\n"
+                + "Row #5: $65,547.49\n"
+                + "Row #6: $65,547.49\n"
+                + "Row #7: $65,435.21\n"
+                + "Row #8: $65,435.21\n"
+                + "Row #9: $5,324.53\n"
+                + "Row #10: $5,324.53\n"
+                + "Row #11: $171,009.14\n"
+                + "Row #12: $66,219.69\n"
+                + "Row #13: $66,219.69\n"
+                + "Row #14: $104,789.45\n"
+                + "Row #15: $104,789.45\n"
+                + "Row #16: $316,937.82\n"
+                + "Row #17: $5,685.23\n"
+                + "Row #18: $5,685.23\n"
+                + "Row #19: $63,548.67\n"
+                + "Row #20: $63,548.67\n"
+                + "Row #21: $63,374.53\n"
+                + "Row #22: $63,374.53\n"
+                + "Row #23: $59,677.94\n"
+                + "Row #24: $59,677.94\n"
+                + "Row #25: $89,769.36\n"
+                + "Row #26: $89,769.36\n"
+                + "Row #27: $5,651.26\n"
+                + "Row #28: $5,651.26\n"
+                + "Row #29: $29,230.83\n"
+                + "Row #30: $29,230.83\n");
     }
 
     /**
@@ -3749,46 +3749,46 @@ public class NonEmptyTest extends BatchTestCase {
             MondrianProperties.instance().EnableNonEmptyOnAllAxis.set(true);
             assertQueryReturns(
                 "WITH MEMBER [Measures].[One] AS '1' "
-                + "SELECT "
-                + "NON EMPTY {[Measures].[One], [Measures].[Store Sales]} ON rows, "
-                + "NON EMPTY [Store].[Store State].MEMBERS on columns "
-                + "FROM sales",
+                    + "SELECT "
+                    + "NON EMPTY {[Measures].[One], [Measures].[Store Sales]} ON rows, "
+                    + "NON EMPTY [Store].[Store State].MEMBERS on columns "
+                    + "FROM sales",
                 "Axis #0:\n"
-                + "{}\n"
-                + "Axis #1:\n"
-                + "{[Store].[Canada].[BC]}\n"
-                + "{[Store].[Mexico].[DF]}\n"
-                + "{[Store].[Mexico].[Guerrero]}\n"
-                + "{[Store].[Mexico].[Jalisco]}\n"
-                + "{[Store].[Mexico].[Veracruz]}\n"
-                + "{[Store].[Mexico].[Yucatan]}\n"
-                + "{[Store].[Mexico].[Zacatecas]}\n"
-                + "{[Store].[USA].[CA]}\n"
-                + "{[Store].[USA].[OR]}\n"
-                + "{[Store].[USA].[WA]}\n"
-                + "Axis #2:\n"
-                + "{[Measures].[One]}\n"
-                + "{[Measures].[Store Sales]}\n"
-                + "Row #0: 1\n"
-                + "Row #0: 1\n"
-                + "Row #0: 1\n"
-                + "Row #0: 1\n"
-                + "Row #0: 1\n"
-                + "Row #0: 1\n"
-                + "Row #0: 1\n"
-                + "Row #0: 1\n"
-                + "Row #0: 1\n"
-                + "Row #0: 1\n"
-                + "Row #1: \n"
-                + "Row #1: \n"
-                + "Row #1: \n"
-                + "Row #1: \n"
-                + "Row #1: \n"
-                + "Row #1: \n"
-                + "Row #1: \n"
-                + "Row #1: 159,167.84\n"
-                + "Row #1: 142,277.07\n"
-                + "Row #1: 263,793.22\n");
+                    + "{}\n"
+                    + "Axis #1:\n"
+                    + "{[Store].[Canada].[BC]}\n"
+                    + "{[Store].[Mexico].[DF]}\n"
+                    + "{[Store].[Mexico].[Guerrero]}\n"
+                    + "{[Store].[Mexico].[Jalisco]}\n"
+                    + "{[Store].[Mexico].[Veracruz]}\n"
+                    + "{[Store].[Mexico].[Yucatan]}\n"
+                    + "{[Store].[Mexico].[Zacatecas]}\n"
+                    + "{[Store].[USA].[CA]}\n"
+                    + "{[Store].[USA].[OR]}\n"
+                    + "{[Store].[USA].[WA]}\n"
+                    + "Axis #2:\n"
+                    + "{[Measures].[One]}\n"
+                    + "{[Measures].[Store Sales]}\n"
+                    + "Row #0: 1\n"
+                    + "Row #0: 1\n"
+                    + "Row #0: 1\n"
+                    + "Row #0: 1\n"
+                    + "Row #0: 1\n"
+                    + "Row #0: 1\n"
+                    + "Row #0: 1\n"
+                    + "Row #0: 1\n"
+                    + "Row #0: 1\n"
+                    + "Row #0: 1\n"
+                    + "Row #1: \n"
+                    + "Row #1: \n"
+                    + "Row #1: \n"
+                    + "Row #1: \n"
+                    + "Row #1: \n"
+                    + "Row #1: \n"
+                    + "Row #1: \n"
+                    + "Row #1: 159,167.84\n"
+                    + "Row #1: 142,277.07\n"
+                    + "Row #1: 263,793.22\n");
 
             if (Bug.BugMondrian446Fixed) {
                 MondrianProperties.instance().EnableNativeNonEmpty.set(true);
@@ -4026,93 +4026,93 @@ public class NonEmptyTest extends BatchTestCase {
     public void testCrossjoinWithOneDimensionThatDoesNotJoinToBothBaseCubes() {
         assertQueryReturns(
             "with member [Measures].[vm] as 'ValidMeasure([Measures].[Units Shipped])'"
-            + "select non empty Crossjoin([Store].[Store Name].members, [Gender].[Gender].members) on 0,"
-            + "{[Measures].[Unit Sales],[Measures].[vm]} on 1"
-            + " from [Warehouse and Sales]",
+                + "select non empty Crossjoin([Store].[Store Name].members, [Gender].[Gender].members) on 0,"
+                + "{[Measures].[Unit Sales],[Measures].[vm]} on 1"
+                + " from [Warehouse and Sales]",
             "Axis #0:\n"
-            + "{}\n"
-            + "Axis #1:\n"
-            + "{[Store].[USA].[CA].[Beverly Hills].[Store 6], [Gender].[F]}\n"
-            + "{[Store].[USA].[CA].[Beverly Hills].[Store 6], [Gender].[M]}\n"
-            + "{[Store].[USA].[CA].[Los Angeles].[Store 7], [Gender].[F]}\n"
-            + "{[Store].[USA].[CA].[Los Angeles].[Store 7], [Gender].[M]}\n"
-            + "{[Store].[USA].[CA].[San Diego].[Store 24], [Gender].[F]}\n"
-            + "{[Store].[USA].[CA].[San Diego].[Store 24], [Gender].[M]}\n"
-            + "{[Store].[USA].[CA].[San Francisco].[Store 14], [Gender].[F]}\n"
-            + "{[Store].[USA].[CA].[San Francisco].[Store 14], [Gender].[M]}\n"
-            + "{[Store].[USA].[OR].[Portland].[Store 11], [Gender].[F]}\n"
-            + "{[Store].[USA].[OR].[Portland].[Store 11], [Gender].[M]}\n"
-            + "{[Store].[USA].[OR].[Salem].[Store 13], [Gender].[F]}\n"
-            + "{[Store].[USA].[OR].[Salem].[Store 13], [Gender].[M]}\n"
-            + "{[Store].[USA].[WA].[Bellingham].[Store 2], [Gender].[F]}\n"
-            + "{[Store].[USA].[WA].[Bellingham].[Store 2], [Gender].[M]}\n"
-            + "{[Store].[USA].[WA].[Bremerton].[Store 3], [Gender].[F]}\n"
-            + "{[Store].[USA].[WA].[Bremerton].[Store 3], [Gender].[M]}\n"
-            + "{[Store].[USA].[WA].[Seattle].[Store 15], [Gender].[F]}\n"
-            + "{[Store].[USA].[WA].[Seattle].[Store 15], [Gender].[M]}\n"
-            + "{[Store].[USA].[WA].[Spokane].[Store 16], [Gender].[F]}\n"
-            + "{[Store].[USA].[WA].[Spokane].[Store 16], [Gender].[M]}\n"
-            + "{[Store].[USA].[WA].[Tacoma].[Store 17], [Gender].[F]}\n"
-            + "{[Store].[USA].[WA].[Tacoma].[Store 17], [Gender].[M]}\n"
-            + "{[Store].[USA].[WA].[Walla Walla].[Store 22], [Gender].[F]}\n"
-            + "{[Store].[USA].[WA].[Walla Walla].[Store 22], [Gender].[M]}\n"
-            + "{[Store].[USA].[WA].[Yakima].[Store 23], [Gender].[F]}\n"
-            + "{[Store].[USA].[WA].[Yakima].[Store 23], [Gender].[M]}\n"
-            + "Axis #2:\n"
-            + "{[Measures].[Unit Sales]}\n"
-            + "{[Measures].[vm]}\n"
-            + "Row #0: 10,771\n"
-            + "Row #0: 10,562\n"
-            + "Row #0: 12,089\n"
-            + "Row #0: 13,574\n"
-            + "Row #0: 12,835\n"
-            + "Row #0: 12,800\n"
-            + "Row #0: 1,064\n"
-            + "Row #0: 1,053\n"
-            + "Row #0: 12,488\n"
-            + "Row #0: 13,591\n"
-            + "Row #0: 20,548\n"
-            + "Row #0: 21,032\n"
-            + "Row #0: 1,096\n"
-            + "Row #0: 1,141\n"
-            + "Row #0: 11,640\n"
-            + "Row #0: 12,936\n"
-            + "Row #0: 13,513\n"
-            + "Row #0: 11,498\n"
-            + "Row #0: 12,068\n"
-            + "Row #0: 11,523\n"
-            + "Row #0: 17,420\n"
-            + "Row #0: 17,837\n"
-            + "Row #0: 1,019\n"
-            + "Row #0: 1,184\n"
-            + "Row #0: 5,007\n"
-            + "Row #0: 6,484\n"
-            + "Row #1: 10759.0\n"
-            + "Row #1: 10759.0\n"
-            + "Row #1: 24587.0\n"
-            + "Row #1: 24587.0\n"
-            + "Row #1: 23835.0\n"
-            + "Row #1: 23835.0\n"
-            + "Row #1: 1696.0\n"
-            + "Row #1: 1696.0\n"
-            + "Row #1: 8515.0\n"
-            + "Row #1: 8515.0\n"
-            + "Row #1: 32393.0\n"
-            + "Row #1: 32393.0\n"
-            + "Row #1: 2348.0\n"
-            + "Row #1: 2348.0\n"
-            + "Row #1: 22734.0\n"
-            + "Row #1: 22734.0\n"
-            + "Row #1: 24110.0\n"
-            + "Row #1: 24110.0\n"
-            + "Row #1: 11889.0\n"
-            + "Row #1: 11889.0\n"
-            + "Row #1: 32411.0\n"
-            + "Row #1: 32411.0\n"
-            + "Row #1: 1860.0\n"
-            + "Row #1: 1860.0\n"
-            + "Row #1: 10589.0\n"
-            + "Row #1: 10589.0\n");
+                + "{}\n"
+                + "Axis #1:\n"
+                + "{[Store].[USA].[CA].[Beverly Hills].[Store 6], [Gender].[F]}\n"
+                + "{[Store].[USA].[CA].[Beverly Hills].[Store 6], [Gender].[M]}\n"
+                + "{[Store].[USA].[CA].[Los Angeles].[Store 7], [Gender].[F]}\n"
+                + "{[Store].[USA].[CA].[Los Angeles].[Store 7], [Gender].[M]}\n"
+                + "{[Store].[USA].[CA].[San Diego].[Store 24], [Gender].[F]}\n"
+                + "{[Store].[USA].[CA].[San Diego].[Store 24], [Gender].[M]}\n"
+                + "{[Store].[USA].[CA].[San Francisco].[Store 14], [Gender].[F]}\n"
+                + "{[Store].[USA].[CA].[San Francisco].[Store 14], [Gender].[M]}\n"
+                + "{[Store].[USA].[OR].[Portland].[Store 11], [Gender].[F]}\n"
+                + "{[Store].[USA].[OR].[Portland].[Store 11], [Gender].[M]}\n"
+                + "{[Store].[USA].[OR].[Salem].[Store 13], [Gender].[F]}\n"
+                + "{[Store].[USA].[OR].[Salem].[Store 13], [Gender].[M]}\n"
+                + "{[Store].[USA].[WA].[Bellingham].[Store 2], [Gender].[F]}\n"
+                + "{[Store].[USA].[WA].[Bellingham].[Store 2], [Gender].[M]}\n"
+                + "{[Store].[USA].[WA].[Bremerton].[Store 3], [Gender].[F]}\n"
+                + "{[Store].[USA].[WA].[Bremerton].[Store 3], [Gender].[M]}\n"
+                + "{[Store].[USA].[WA].[Seattle].[Store 15], [Gender].[F]}\n"
+                + "{[Store].[USA].[WA].[Seattle].[Store 15], [Gender].[M]}\n"
+                + "{[Store].[USA].[WA].[Spokane].[Store 16], [Gender].[F]}\n"
+                + "{[Store].[USA].[WA].[Spokane].[Store 16], [Gender].[M]}\n"
+                + "{[Store].[USA].[WA].[Tacoma].[Store 17], [Gender].[F]}\n"
+                + "{[Store].[USA].[WA].[Tacoma].[Store 17], [Gender].[M]}\n"
+                + "{[Store].[USA].[WA].[Walla Walla].[Store 22], [Gender].[F]}\n"
+                + "{[Store].[USA].[WA].[Walla Walla].[Store 22], [Gender].[M]}\n"
+                + "{[Store].[USA].[WA].[Yakima].[Store 23], [Gender].[F]}\n"
+                + "{[Store].[USA].[WA].[Yakima].[Store 23], [Gender].[M]}\n"
+                + "Axis #2:\n"
+                + "{[Measures].[Unit Sales]}\n"
+                + "{[Measures].[vm]}\n"
+                + "Row #0: 10,771\n"
+                + "Row #0: 10,562\n"
+                + "Row #0: 12,089\n"
+                + "Row #0: 13,574\n"
+                + "Row #0: 12,835\n"
+                + "Row #0: 12,800\n"
+                + "Row #0: 1,064\n"
+                + "Row #0: 1,053\n"
+                + "Row #0: 12,488\n"
+                + "Row #0: 13,591\n"
+                + "Row #0: 20,548\n"
+                + "Row #0: 21,032\n"
+                + "Row #0: 1,096\n"
+                + "Row #0: 1,141\n"
+                + "Row #0: 11,640\n"
+                + "Row #0: 12,936\n"
+                + "Row #0: 13,513\n"
+                + "Row #0: 11,498\n"
+                + "Row #0: 12,068\n"
+                + "Row #0: 11,523\n"
+                + "Row #0: 17,420\n"
+                + "Row #0: 17,837\n"
+                + "Row #0: 1,019\n"
+                + "Row #0: 1,184\n"
+                + "Row #0: 5,007\n"
+                + "Row #0: 6,484\n"
+                + "Row #1: 10759.0\n"
+                + "Row #1: 10759.0\n"
+                + "Row #1: 24587.0\n"
+                + "Row #1: 24587.0\n"
+                + "Row #1: 23835.0\n"
+                + "Row #1: 23835.0\n"
+                + "Row #1: 1696.0\n"
+                + "Row #1: 1696.0\n"
+                + "Row #1: 8515.0\n"
+                + "Row #1: 8515.0\n"
+                + "Row #1: 32393.0\n"
+                + "Row #1: 32393.0\n"
+                + "Row #1: 2348.0\n"
+                + "Row #1: 2348.0\n"
+                + "Row #1: 22734.0\n"
+                + "Row #1: 22734.0\n"
+                + "Row #1: 24110.0\n"
+                + "Row #1: 24110.0\n"
+                + "Row #1: 11889.0\n"
+                + "Row #1: 11889.0\n"
+                + "Row #1: 32411.0\n"
+                + "Row #1: 32411.0\n"
+                + "Row #1: 1860.0\n"
+                + "Row #1: 1860.0\n"
+                + "Row #1: 10589.0\n"
+                + "Row #1: 10589.0\n");
     }
 
     public void testLeafMembersOfParentChildDimensionAreNativelyEvaluated() {
@@ -4566,7 +4566,7 @@ public class NonEmptyTest extends BatchTestCase {
             sqlOracle,
             sqlOracle.length());
         assertQuerySqlOrNot(
-            getTestContext(), mdx, new SqlPattern[]{pattern},true, false, true);
+            getTestContext(), mdx, new SqlPattern[]{pattern}, true, false, true);
     }
 
     public void testMeasureConstraintsInACrossjoinHaveCorrectResults() {
@@ -4586,17 +4586,17 @@ public class NonEmptyTest extends BatchTestCase {
         assertQueryReturns(
             mdx,
             "Axis #0:\n"
-            + "{}\n"
-            + "Axis #1:\n"
-            + "{[Store].[USA].[CA], [Measures].[aa]}\n"
-            + "{[Store].[USA].[CA], [Measures].[bb]}\n"
-            + "Axis #2:\n"
-            + "{[Marital Status].[M]}\n"
-            + "{[Marital Status].[S]}\n"
-            + "Row #0: 15,339.94\n"
-            + "Row #0: 15,941.98\n"
-            + "Row #1: 16,598.87\n"
-            + "Row #1: 15,649.64\n");
+                + "{}\n"
+                + "Axis #1:\n"
+                + "{[Store].[USA].[CA], [Measures].[aa]}\n"
+                + "{[Store].[USA].[CA], [Measures].[bb]}\n"
+                + "Axis #2:\n"
+                + "{[Marital Status].[M]}\n"
+                + "{[Marital Status].[S]}\n"
+                + "Row #0: 15,339.94\n"
+                + "Row #0: 15,941.98\n"
+                + "Row #1: 16,598.87\n"
+                + "Row #1: 15,649.64\n");
     }
 
     public void testContextAtAllWorksWithConstraint() {
@@ -4625,14 +4625,14 @@ public class NonEmptyTest extends BatchTestCase {
         ctx.assertQueryReturns(
             mdx,
             "Axis #0:\n"
-            + "{}\n"
-            + "Axis #1:\n"
-            + "{[Measures].[Unit Sales]}\n"
-            + "Axis #2:\n"
-            + "{[Gender].[F]}\n"
-            + "{[Gender].[M]}\n"
-            + "Row #0: 131,558\n"
-            + "Row #1: 135,215\n");
+                + "{}\n"
+                + "Axis #1:\n"
+                + "{[Measures].[Unit Sales]}\n"
+                + "Axis #2:\n"
+                + "{[Gender].[F]}\n"
+                + "{[Gender].[M]}\n"
+                + "Row #0: 131,558\n"
+                + "Row #1: 135,215\n");
     }
 
     /***
@@ -4681,20 +4681,20 @@ public class NonEmptyTest extends BatchTestCase {
                 + "</Schema>");
         context.assertQueryReturns(
             "select "
-            + " [Measures].[Unit Sales] on COLUMNS, "
-            + " NON EMPTY {[Store].[Store State].Members} ON ROWS "
-            + " from [virtual] ",
+                + " [Measures].[Unit Sales] on COLUMNS, "
+                + " NON EMPTY {[Store].[Store State].Members} ON ROWS "
+                + " from [virtual] ",
             "Axis #0:\n"
-            + "{}\n"
-            + "Axis #1:\n"
-            + "{[Measures].[Unit Sales]}\n"
-            + "Axis #2:\n"
-            + "{[Store].[USA].[CA]}\n"
-            + "{[Store].[USA].[OR]}\n"
-            + "{[Store].[USA].[WA]}\n"
-            + "Row #0: 74,748\n"
-            + "Row #1: 67,659\n"
-            + "Row #2: 124,366\n");
+                + "{}\n"
+                + "Axis #1:\n"
+                + "{[Measures].[Unit Sales]}\n"
+                + "Axis #2:\n"
+                + "{[Store].[USA].[CA]}\n"
+                + "{[Store].[USA].[OR]}\n"
+                + "{[Store].[USA].[WA]}\n"
+                + "Row #0: 74,748\n"
+                + "Row #1: 67,659\n"
+                + "Row #2: 124,366\n");
     }
 
     /**
@@ -4715,18 +4715,18 @@ public class NonEmptyTest extends BatchTestCase {
         assertQueryReturns(
             mdx,
             "Axis #0:\n"
-            + "{}\n"
-            + "Axis #1:\n"
-            + "{[Measures].[Unit Sales]}\n"
-            + "Axis #2:\n"
-            + "{[Store].[All Stores], [Store Size in SQFT].[All Store Size in SQFTs], [Store Type].[All Store Types], [Time].[1997], [Product].[All Products], [Promotion Media].[All Media], [Promotions].[All Promotions], [Customers].[All Customers], [Education Level].[All Education Levels], [Gender].[All Gender], [Marital Status].[All Marital Status], [Yearly Income].[All Yearly Incomes]}\n"
-            + "{[Store].[All Stores], [Store Size in SQFT].[All Store Size in SQFTs], [Store Type].[All Store Types], [Time].[1997], [Product].[Drink], [Promotion Media].[All Media], [Promotions].[All Promotions], [Customers].[All Customers], [Education Level].[All Education Levels], [Gender].[All Gender], [Marital Status].[All Marital Status], [Yearly Income].[All Yearly Incomes]}\n"
-            + "{[Store].[All Stores], [Store Size in SQFT].[All Store Size in SQFTs], [Store Type].[All Store Types], [Time].[1997], [Product].[Food], [Promotion Media].[All Media], [Promotions].[All Promotions], [Customers].[All Customers], [Education Level].[All Education Levels], [Gender].[All Gender], [Marital Status].[All Marital Status], [Yearly Income].[All Yearly Incomes]}\n"
-            + "{[Store].[All Stores], [Store Size in SQFT].[All Store Size in SQFTs], [Store Type].[All Store Types], [Time].[1997], [Product].[Non-Consumable], [Promotion Media].[All Media], [Promotions].[All Promotions], [Customers].[All Customers], [Education Level].[All Education Levels], [Gender].[All Gender], [Marital Status].[All Marital Status], [Yearly Income].[All Yearly Incomes]}\n"
-            + "Row #0: 266,773\n"
-            + "Row #1: 24,597\n"
-            + "Row #2: 191,940\n"
-            + "Row #3: 50,236\n");
+                + "{}\n"
+                + "Axis #1:\n"
+                + "{[Measures].[Unit Sales]}\n"
+                + "Axis #2:\n"
+                + "{[Store].[All Stores], [Store Size in SQFT].[All Store Size in SQFTs], [Store Type].[All Store Types], [Time].[1997], [Product].[All Products], [Promotion Media].[All Media], [Promotions].[All Promotions], [Customers].[All Customers], [Education Level].[All Education Levels], [Gender].[All Gender], [Marital Status].[All Marital Status], [Yearly Income].[All Yearly Incomes]}\n"
+                + "{[Store].[All Stores], [Store Size in SQFT].[All Store Size in SQFTs], [Store Type].[All Store Types], [Time].[1997], [Product].[Drink], [Promotion Media].[All Media], [Promotions].[All Promotions], [Customers].[All Customers], [Education Level].[All Education Levels], [Gender].[All Gender], [Marital Status].[All Marital Status], [Yearly Income].[All Yearly Incomes]}\n"
+                + "{[Store].[All Stores], [Store Size in SQFT].[All Store Size in SQFTs], [Store Type].[All Store Types], [Time].[1997], [Product].[Food], [Promotion Media].[All Media], [Promotions].[All Promotions], [Customers].[All Customers], [Education Level].[All Education Levels], [Gender].[All Gender], [Marital Status].[All Marital Status], [Yearly Income].[All Yearly Incomes]}\n"
+                + "{[Store].[All Stores], [Store Size in SQFT].[All Store Size in SQFTs], [Store Type].[All Store Types], [Time].[1997], [Product].[Non-Consumable], [Promotion Media].[All Media], [Promotions].[All Promotions], [Customers].[All Customers], [Education Level].[All Education Levels], [Gender].[All Gender], [Marital Status].[All Marital Status], [Yearly Income].[All Yearly Incomes]}\n"
+                + "Row #0: 266,773\n"
+                + "Row #1: 24,597\n"
+                + "Row #2: 191,940\n"
+                + "Row #3: 50,236\n");
     }
 
     /**
@@ -4848,10 +4848,10 @@ public class NonEmptyTest extends BatchTestCase {
         // children across a snowflake boundary
         assertQueryReturns(
             "select [Product].[Drink].[Baking Goods].[Dry Goods].[Coffee].Children on 0\n"
-            + "from [Sales]",
+                + "from [Sales]",
             "Axis #0:\n"
-            + "{}\n"
-            + "Axis #1:\n");
+                + "{}\n"
+                + "Axis #1:\n");
     }
 
     public void testFilterChildlessSnowflakeMembers() {
@@ -4968,24 +4968,24 @@ public class NonEmptyTest extends BatchTestCase {
         TestContext ctx = getTestContext();
         ctx.assertQueryReturns(
             "WITH SET [CustomerSet] as {[Customers].[Canada].[BC].[Burnaby].[Alexandra Wellington], [Customers].[USA].[WA].[Tacoma].[Eric Coleman]} "
-            + "SET [InterestingCustomers] as [CustomerSet] "
-            + "SET [TimeRange] as {[Time].[1998].[Q1], [Time].[1998].[Q2]} "
-            + "SELECT {[Measures].[Store Sales]} ON COLUMNS, "
-            + "CrossJoin([InterestingCustomers], [TimeRange]) ON ROWS "
-            + "FROM [Sales]",
+                + "SET [InterestingCustomers] as [CustomerSet] "
+                + "SET [TimeRange] as {[Time].[1998].[Q1], [Time].[1998].[Q2]} "
+                + "SELECT {[Measures].[Store Sales]} ON COLUMNS, "
+                + "CrossJoin([InterestingCustomers], [TimeRange]) ON ROWS "
+                + "FROM [Sales]",
             "Axis #0:\n"
-            + "{}\n"
-            + "Axis #1:\n"
-            + "{[Measures].[Store Sales]}\n"
-            + "Axis #2:\n"
-            + "{[Customers].[Canada].[BC].[Burnaby].[Alexandra Wellington], [Time].[1998].[Q1]}\n"
-            + "{[Customers].[Canada].[BC].[Burnaby].[Alexandra Wellington], [Time].[1998].[Q2]}\n"
-            + "{[Customers].[USA].[WA].[Tacoma].[Eric Coleman], [Time].[1998].[Q1]}\n"
-            + "{[Customers].[USA].[WA].[Tacoma].[Eric Coleman], [Time].[1998].[Q2]}\n"
-            + "Row #0: \n"
-            + "Row #1: \n"
-            + "Row #2: \n"
-            + "Row #3: \n");
+                + "{}\n"
+                + "Axis #1:\n"
+                + "{[Measures].[Store Sales]}\n"
+                + "Axis #2:\n"
+                + "{[Customers].[Canada].[BC].[Burnaby].[Alexandra Wellington], [Time].[1998].[Q1]}\n"
+                + "{[Customers].[Canada].[BC].[Burnaby].[Alexandra Wellington], [Time].[1998].[Q2]}\n"
+                + "{[Customers].[USA].[WA].[Tacoma].[Eric Coleman], [Time].[1998].[Q1]}\n"
+                + "{[Customers].[USA].[WA].[Tacoma].[Eric Coleman], [Time].[1998].[Q2]}\n"
+                + "Row #0: \n"
+                + "Row #1: \n"
+                + "Row #2: \n"
+                + "Row #3: \n");
     }
 
     /**
@@ -5640,40 +5640,40 @@ public class NonEmptyTest extends BatchTestCase {
         // if potential conflicts aren't removed.
         assertQueryReturns(
             "WITH  member measures.[overrideContext] as '( measures.[unit sales], Time.[1997].Q1 )'\n"
-            + "SELECT measures.[overrideContext] on 0, \n"
-            + "NON EMPTY [Marital Status].[Marital Status].members on 1,\n"
-            + "NON EMPTY Time.[1998].Q1 on 2\n"
-            + "FROM sales\n",
+                + "SELECT measures.[overrideContext] on 0, \n"
+                + "NON EMPTY [Marital Status].[Marital Status].members on 1,\n"
+                + "NON EMPTY Time.[1998].Q1 on 2\n"
+                + "FROM sales\n",
             "Axis #0:\n"
-            + "{}\n"
-            + "Axis #1:\n"
-            + "{[Measures].[overrideContext]}\n"
-            + "Axis #2:\n"
-            + "{[Marital Status].[M]}\n"
-            + "{[Marital Status].[S]}\n"
-            + "Axis #3:\n"
-            + "{[Time].[1998].[Q1]}\n"
-            + "Row #0: 33,101\n"
-            + "Row #1: 33,190\n");
+                + "{}\n"
+                + "Axis #1:\n"
+                + "{[Measures].[overrideContext]}\n"
+                + "Axis #2:\n"
+                + "{[Marital Status].[M]}\n"
+                + "{[Marital Status].[S]}\n"
+                + "Axis #3:\n"
+                + "{[Time].[1998].[Q1]}\n"
+                + "Row #0: 33,101\n"
+                + "Row #1: 33,190\n");
     }
 
     public void testMondrian2202WithAggTopCountSet() {
         // in slicer
         assertQueryReturns(
             "with member measures.top5Prod as "
-            + "'aggregate(topcount("
-            + "crossjoin( {time.[1997]}, product.[product name].members), 5, measures.[unit sales]), measures.[unit sales])'"
-            + " select measures.top5Prod on 0, non empty crossjoin({[Marital Status].[M]}, gender.gender.members) on 1"
-            + " from sales where time.[1998].[Q1]",
+                + "'aggregate(topcount("
+                + "crossjoin( {time.[1997]}, product.[product name].members), 5, measures.[unit sales]), measures.[unit sales])'"
+                + " select measures.top5Prod on 0, non empty crossjoin({[Marital Status].[M]}, gender.gender.members) on 1"
+                + " from sales where time.[1998].[Q1]",
             "Axis #0:\n"
-            + "{[Time].[1998].[Q1]}\n"
-            + "Axis #1:\n"
-            + "{[Measures].[top5Prod]}\n"
-            + "Axis #2:\n"
-            + "{[Marital Status].[M], [Gender].[F]}\n"
-            + "{[Marital Status].[M], [Gender].[M]}\n"
-            + "Row #0: 398\n"
-            + "Row #1: 385\n");
+                + "{[Time].[1998].[Q1]}\n"
+                + "Axis #1:\n"
+                + "{[Measures].[top5Prod]}\n"
+                + "Axis #2:\n"
+                + "{[Marital Status].[M], [Gender].[F]}\n"
+                + "{[Marital Status].[M], [Gender].[M]}\n"
+                + "Row #0: 398\n"
+                + "Row #1: 385\n");
         // in CJ
         assertQueryReturns(
             "with member measures.top5Prod as "
@@ -5847,6 +5847,152 @@ public class NonEmptyTest extends BatchTestCase {
             + "Row #10: \n"
             + "Row #10: 259\n");
     }
+
+
+    // I used the tests below while testing the spike.  They are not real
+    // tests, just a simple way to exercise Analyzer style MDX to determine
+    // whether native eval is happening.
+    // Need to create proper Foodmart tests with checks for native
+    // eval.
+    public void testTC() {
+        assertQueryReturns("WITH\n" +
+                "SET [*NATIVE_CJ_SET] AS 'NONEMPTYCROSSJOIN([*BASE_MEMBERS__ActivityType_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Node_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Sites_],[*BASE_MEMBERS__Activity_Date_])))'\n" +
+                "SET [*METRIC_CJ_SET] AS 'FILTER(FILTER([*NATIVE_CJ_SET],[Measures].[*TOP_Number of Events_SEL~SUM] <= 10), NOT ISEMPTY ([Measures].[Number of Events]))'\n" +
+                "SET [*NATIVE_MEMBERS__ActivityType_] AS 'GENERATE([*NATIVE_CJ_SET], {[ActivityType].CURRENTMEMBER})'\n" +
+                "SET [*BASE_MEMBERS__ActivityType_] AS '{[ActivityType].[activity.org.alfresco.documentlibrary.file-added],[ActivityType].[activity.org.alfresco.documentlibrary.file-created],[ActivityType].[activity.org.alfresco.documentlibrary.file-deleted],[ActivityType].[activity.org.alfresco.documentlibrary.file-downloaded],[ActivityType].[activity.org.alfresco.documentlibrary.inline-edit],[ActivityType].[activity.org.alfresco.documentlibrary.file-liked],[ActivityType].[activity.org.alfresco.documentlibrary.file-previewed],[ActivityType].[activity.org.alfresco.documentlibrary.file-updated]}'\n" +
+                "SET [*NATIVE_MEMBERS__Activity_Date_] AS 'GENERATE([*NATIVE_CJ_SET], {[Activity_Date].CURRENTMEMBER})'\n" +
+                "SET [*BASE_MEMBERS__Sites_] AS '{[Sites].[greg]}'\n" +
+                "SET [*SORTED_COL_AXIS] AS 'ORDER([*CJ_COL_AXIS],[ActivityType].CURRENTMEMBER.ORDERKEY,BASC)'\n" +
+                "SET [*TOP_SET] AS 'ORDER(GENERATE([*NATIVE_CJ_SET],{[Node].CURRENTMEMBER}),([Measures].[Number of Events],[ActivityType].[*CTX_MEMBER_SEL~SUM],[Sites].[*CTX_MEMBER_SEL~AGG],[Activity_Date].[*CTX_MEMBER_SEL~AGG]),BDESC)'\n" +
+                "SET [*BASE_MEMBERS__Measures_] AS '{[Measures].[Number of Events]}'\n" +
+                "SET [*NATIVE_MEMBERS__Sites_] AS 'GENERATE([*NATIVE_CJ_SET], {[Sites].CURRENTMEMBER})'\n" +
+                "SET [*CJ_SLICER_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([Sites].CURRENTMEMBER,[Activity_Date].CURRENTMEMBER)})'\n" +
+                "SET [*CJ_ROW_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([Node].CURRENTMEMBER)})'\n" +
+                "SET [*BASE_MEMBERS__Activity_Date_] AS '{[Activity_Date].[2014].[2].[2014-02-24] : [Activity_Date].[2014].[10].[2014-10-22]}'\n" +
+                "SET [*BASE_MEMBERS__Node_] AS '[Node].[Content Name].MEMBERS'\n" +
+                "SET [*SORTED_ROW_AXIS] AS 'ORDER([*CJ_ROW_AXIS],[Measures].[*SORTED_MEASURE],BDESC)'\n" +
+                "SET [*CJ_COL_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([ActivityType].CURRENTMEMBER)})'\n" +
+                "MEMBER [ActivityType].[*CTX_MEMBER_SEL~SUM] AS 'SUM([*NATIVE_MEMBERS__ActivityType_])', SOLVE_ORDER=99\n" +
+                "MEMBER [Activity_Date].[*CTX_MEMBER_SEL~AGG] AS 'AGGREGATE([*NATIVE_MEMBERS__Activity_Date_])', SOLVE_ORDER=-303\n" +
+                "MEMBER [Measures].[*SORTED_MEASURE] AS '([Measures].[Number of Events],[ActivityType].[activity.org.alfresco.documentlibrary.file-added],[Sites].[*CTX_MEMBER_SEL~AGG],[Activity_Date].[*CTX_MEMBER_SEL~AGG])', SOLVE_ORDER=400\n" +
+                "MEMBER [Measures].[*TOP_Number of Events_SEL~SUM] AS 'RANK([Node].CURRENTMEMBER,[*TOP_SET])', SOLVE_ORDER=400\n" +
+                "MEMBER [Sites].[*CTX_MEMBER_SEL~AGG] AS 'AGGREGATE([*NATIVE_MEMBERS__Sites_])', SOLVE_ORDER=-302\n" +
+                "SELECT\n" +
+                "CROSSJOIN([*SORTED_COL_AXIS],[*BASE_MEMBERS__Measures_]) ON COLUMNS\n" +
+                ",[*SORTED_ROW_AXIS] ON ROWS\n" +
+                "FROM [Activity]\n"
+//            +
+//            "WHERE ([*CJ_SLICER_AXIS])\n"
+            ,
+            "");
+    }
+
+    public void testTCModSortedSetBySpecificActivityType() {
+        assertQueryReturns("WITH\n" +
+                "SET [*NATIVE_CJ_SET] AS 'NONEMPTYCROSSJOIN([*BASE_MEMBERS__ActivityType_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Node_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Sites_],[*BASE_MEMBERS__Activity_Date_])))'\n" +
+                //"SET [*METRIC_CJ_SET] AS 'FILTER(FILTER([*NATIVE_CJ_SET],[Measures].[*TOP_Number of Events_SEL~SUM] <= 10), NOT ISEMPTY ([Measures].[Number of Events]))'\n" +
+                "SET [*METRIC_CJ_SET] AS 'TopCount([*NATIVE_CJ_SET],10,[Measures].[Number of Events])' " +
+                "SET [*NATIVE_MEMBERS__ActivityType_] AS 'GENERATE([*NATIVE_CJ_SET], {[ActivityType].CURRENTMEMBER})'\n" +
+                "SET [*BASE_MEMBERS__ActivityType_] AS '{[ActivityType].[activity.org.alfresco.documentlibrary.file-added],[ActivityType].[activity.org.alfresco.documentlibrary.file-created],[ActivityType].[activity.org.alfresco.documentlibrary.file-deleted],[ActivityType].[activity.org.alfresco.documentlibrary.file-downloaded],[ActivityType].[activity.org.alfresco.documentlibrary.inline-edit],[ActivityType].[activity.org.alfresco.documentlibrary.file-liked],[ActivityType].[activity.org.alfresco.documentlibrary.file-previewed],[ActivityType].[activity.org.alfresco.documentlibrary.file-updated]}'\n" +
+                "SET [*NATIVE_MEMBERS__Activity_Date_] AS 'GENERATE([*NATIVE_CJ_SET], {[Activity_Date].CURRENTMEMBER})'\n" +
+                "SET [*BASE_MEMBERS__Sites_] AS '{[Sites].[greg]}'\n" +
+                "SET [*SORTED_COL_AXIS] AS 'ORDER([*CJ_COL_AXIS],[ActivityType].CURRENTMEMBER.ORDERKEY,BASC)'\n" +
+                "SET [*TOP_SET] AS 'ORDER(GENERATE([*NATIVE_CJ_SET],{[Node].CURRENTMEMBER}),([Measures].[Number of Events],[ActivityType].[*CTX_MEMBER_SEL~SUM],[Sites].[*CTX_MEMBER_SEL~AGG],[Activity_Date].[*CTX_MEMBER_SEL~AGG]),BDESC)'\n" +
+                "SET [*BASE_MEMBERS__Measures_] AS '{[Measures].[Number of Events]}'\n" +
+                "SET [*NATIVE_MEMBERS__Sites_] AS 'GENERATE([*NATIVE_CJ_SET], {[Sites].CURRENTMEMBER})'\n" +
+                "SET [*CJ_SLICER_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([Sites].CURRENTMEMBER,[Activity_Date].CURRENTMEMBER)})'\n" +
+                "SET [*CJ_ROW_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([Node].CURRENTMEMBER)})'\n" +
+                "SET [*BASE_MEMBERS__Activity_Date_] AS '{[Activity_Date].[2014].[2].[2014-02-24] : [Activity_Date].[2014].[10].[2014-10-22]}'\n" +
+                "SET [*BASE_MEMBERS__Node_] AS '[Node].[Content Name].MEMBERS'\n" +
+                "SET [*SORTED_ROW_AXIS] AS 'ORDER([*CJ_ROW_AXIS],[Measures].[*SORTED_MEASURE],BDESC)'\n" +
+                "SET [*CJ_COL_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([ActivityType].CURRENTMEMBER)})'\n" +
+                "MEMBER [ActivityType].[*CTX_MEMBER_SEL~SUM] AS 'SUM([*NATIVE_MEMBERS__ActivityType_])', SOLVE_ORDER=99\n" +
+                "MEMBER [Activity_Date].[*CTX_MEMBER_SEL~AGG] AS 'AGGREGATE([*NATIVE_MEMBERS__Activity_Date_])', SOLVE_ORDER=-303\n" +
+                "MEMBER [Measures].[*SORTED_MEASURE] AS '([Measures].[Number of Events],[ActivityType].[activity.org.alfresco.documentlibrary.file-added],[Sites].[*CTX_MEMBER_SEL~AGG],[Activity_Date].[*CTX_MEMBER_SEL~AGG])', SOLVE_ORDER=400\n" +
+                "MEMBER [Measures].[*TOP_Number of Events_SEL~SUM] AS 'RANK([Node].CURRENTMEMBER,[*TOP_SET])', SOLVE_ORDER=400\n" +
+                "MEMBER [Sites].[*CTX_MEMBER_SEL~AGG] AS 'AGGREGATE([*NATIVE_MEMBERS__Sites_])', SOLVE_ORDER=-302\n" +
+                "SELECT\n" +
+                "CROSSJOIN([*SORTED_COL_AXIS],[*BASE_MEMBERS__Measures_]) ON COLUMNS\n" +
+                ",[*SORTED_ROW_AXIS] ON ROWS\n" +
+                "FROM [Activity]\n"
+//            +
+//            "WHERE ([*CJ_SLICER_AXIS])\n"
+            ,
+            "");
+    }
+
+    public void testTCModSortedSetByAllActivityType() {
+        assertQueryReturns("WITH\n" +
+                "SET [*NATIVE_CJ_SET] AS 'NONEMPTYCROSSJOIN([*BASE_MEMBERS__ActivityType_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Node_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Sites_],[*BASE_MEMBERS__Activity_Date_])))'\n" +
+                //"SET [*METRIC_CJ_SET] AS 'FILTER(FILTER([*NATIVE_CJ_SET],[Measures].[*TOP_Number of Events_SEL~SUM] <= 10), NOT ISEMPTY ([Measures].[Number of Events]))'\n" +
+                "SET [*METRIC_CJ_SET] AS 'TopCount([*NATIVE_CJ_SET],10,[Measures].[Number of Events])' " +
+                "SET [*NATIVE_MEMBERS__ActivityType_] AS 'GENERATE([*NATIVE_CJ_SET], {[ActivityType].CURRENTMEMBER})'\n" +
+                "SET [*BASE_MEMBERS__ActivityType_] AS '{[ActivityType].[activity.org.alfresco.documentlibrary.file-added],[ActivityType].[activity.org.alfresco.documentlibrary.file-created],[ActivityType].[activity.org.alfresco.documentlibrary.file-deleted],[ActivityType].[activity.org.alfresco.documentlibrary.file-downloaded],[ActivityType].[activity.org.alfresco.documentlibrary.inline-edit],[ActivityType].[activity.org.alfresco.documentlibrary.file-liked],[ActivityType].[activity.org.alfresco.documentlibrary.file-previewed],[ActivityType].[activity.org.alfresco.documentlibrary.file-updated]}'\n" +
+                "SET [*NATIVE_MEMBERS__Activity_Date_] AS 'GENERATE([*NATIVE_CJ_SET], {[Activity_Date].CURRENTMEMBER})'\n" +
+                "SET [*BASE_MEMBERS__Sites_] AS '{[Sites].[greg]}'\n" +
+                "SET [*SORTED_COL_AXIS] AS 'ORDER([*CJ_COL_AXIS],[ActivityType].CURRENTMEMBER.ORDERKEY,BASC)'\n" +
+                "SET [*TOP_SET] AS 'ORDER(GENERATE([*NATIVE_CJ_SET],{[Node].CURRENTMEMBER}),([Measures].[Number of Events],[ActivityType].[*CTX_MEMBER_SEL~SUM],[Sites].[*CTX_MEMBER_SEL~AGG],[Activity_Date].[*CTX_MEMBER_SEL~AGG]),BDESC)'\n" +
+                "SET [*BASE_MEMBERS__Measures_] AS '{[Measures].[Number of Events]}'\n" +
+                "SET [*NATIVE_MEMBERS__Sites_] AS 'GENERATE([*NATIVE_CJ_SET], {[Sites].CURRENTMEMBER})'\n" +
+                "SET [*CJ_SLICER_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([Sites].CURRENTMEMBER,[Activity_Date].CURRENTMEMBER)})'\n" +
+                "SET [*CJ_ROW_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([Node].CURRENTMEMBER)})'\n" +
+                "SET [*BASE_MEMBERS__Activity_Date_] AS '{[Activity_Date].[2014].[2].[2014-02-24] : [Activity_Date].[2014].[10].[2014-10-22]}'\n" +
+                "SET [*BASE_MEMBERS__Node_] AS '[Node].[Content Name].MEMBERS'\n" +
+                "SET [*SORTED_ROW_AXIS] AS 'ORDER([*CJ_ROW_AXIS],[Measures].[*SORTED_MEASURE],BDESC)'\n" +
+                "SET [*CJ_COL_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([ActivityType].CURRENTMEMBER)})'\n" +
+                "MEMBER [ActivityType].[*CTX_MEMBER_SEL~SUM] AS 'SUM([*NATIVE_MEMBERS__ActivityType_])', SOLVE_ORDER=99\n" +
+                "MEMBER [Activity_Date].[*CTX_MEMBER_SEL~AGG] AS 'AGGREGATE([*NATIVE_MEMBERS__Activity_Date_])', SOLVE_ORDER=-303\n" +
+                "MEMBER [Measures].[*SORTED_MEASURE] AS '([Measures].[Number of Events],[ActivityType].[*CTX_MEMBER_SEL~SUM],[Sites].[*CTX_MEMBER_SEL~AGG],[Activity_Date].[*CTX_MEMBER_SEL~AGG])', SOLVE_ORDER=400\n" +
+                "MEMBER [Measures].[*TOP_Number of Events_SEL~SUM] AS 'RANK([Node].CURRENTMEMBER,[*TOP_SET])', SOLVE_ORDER=400\n" +
+                "MEMBER [Sites].[*CTX_MEMBER_SEL~AGG] AS 'AGGREGATE([*NATIVE_MEMBERS__Sites_])', SOLVE_ORDER=-302\n" +
+                "SELECT\n" +
+                "CROSSJOIN([*SORTED_COL_AXIS],[*BASE_MEMBERS__Measures_]) ON COLUMNS\n" +
+                ",[*SORTED_ROW_AXIS] ON ROWS\n" +
+                "FROM [Activity]\n"
+//            +
+//            "WHERE ([*CJ_SLICER_AXIS])\n"
+            ,
+            "");
+    }
+
+
+    public void testTCModSortedSetByAllActivityTypeJustNodeInTC() {
+        assertQueryReturns("WITH\n" +
+                "SET [*NATIVE_CJ_SET] AS 'NONEMPTYCROSSJOIN([*BASE_MEMBERS__ActivityType_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Node_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Sites_],[*BASE_MEMBERS__Activity_Date_])))'\n" +
+                "SET [*NATIVE_CJ_SET Minus TC Attribute] AS 'NONEMPTYCROSSJOIN([*BASE_MEMBERS__ActivityType_],NONEMPTYCROSSJOIN([*BASE_MEMBERS__Sites_],[*BASE_MEMBERS__Activity_Date_]))'\n" +
+                //"SET [*METRIC_CJ_SET] AS 'FILTER(FILTER([*NATIVE_CJ_SET],[Measures].[*TOP_Number of Events_SEL~SUM] <= 10), NOT ISEMPTY ([Measures].[Number of Events]))'\n" +
+                "SET [*TopCount Set] AS 'TopCount(  [*BASE_MEMBERS__Node_],10, [Measures].[*SORTED_MEASURE])' " +
+                "SET [*METRIC_CJ_SET] AS 'NONEMPTYCROSSJOIN([*TopCount Set],[*NATIVE_CJ_SET Minus TC Attribute]) ' " +
+
+                "SET [*NATIVE_MEMBERS__ActivityType_] AS 'GENERATE([*NATIVE_CJ_SET], {[ActivityType].CURRENTMEMBER})'\n" +
+                "SET [*BASE_MEMBERS__ActivityType_] AS '{[ActivityType].[activity.org.alfresco.documentlibrary.file-added],[ActivityType].[activity.org.alfresco.documentlibrary.file-created],[ActivityType].[activity.org.alfresco.documentlibrary.file-deleted],[ActivityType].[activity.org.alfresco.documentlibrary.file-downloaded],[ActivityType].[activity.org.alfresco.documentlibrary.inline-edit],[ActivityType].[activity.org.alfresco.documentlibrary.file-liked],[ActivityType].[activity.org.alfresco.documentlibrary.file-previewed],[ActivityType].[activity.org.alfresco.documentlibrary.file-updated]}'\n" +
+                "SET [*NATIVE_MEMBERS__Activity_Date_] AS 'GENERATE([*NATIVE_CJ_SET], {[Activity_Date].CURRENTMEMBER})'\n" +
+                "SET [*BASE_MEMBERS__Sites_] AS '{[Sites].[greg]}'\n" +
+                "SET [*SORTED_COL_AXIS] AS 'ORDER([*CJ_COL_AXIS],[ActivityType].CURRENTMEMBER.ORDERKEY,BASC)'\n" +
+                "SET [*TOP_SET] AS 'ORDER(GENERATE([*NATIVE_CJ_SET],{[Node].CURRENTMEMBER}),([Measures].[Number of Events],[ActivityType].[*CTX_MEMBER_SEL~SUM],[Sites].[*CTX_MEMBER_SEL~AGG],[Activity_Date].[*CTX_MEMBER_SEL~AGG]),BDESC)'\n" +
+                "SET [*BASE_MEMBERS__Measures_] AS '{[Measures].[Number of Events]}'\n" +
+                "SET [*NATIVE_MEMBERS__Sites_] AS 'GENERATE([*NATIVE_CJ_SET], {[Sites].CURRENTMEMBER})'\n" +
+                "SET [*CJ_SLICER_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([Sites].CURRENTMEMBER,[Activity_Date].CURRENTMEMBER)})'\n" +
+                "SET [*CJ_ROW_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([Node].CURRENTMEMBER)})'\n" +
+                "SET [*BASE_MEMBERS__Activity_Date_] AS '{[Activity_Date].[2014].[2].[2014-02-24] : [Activity_Date].[2014].[10].[2014-10-22]}'\n" +
+                "SET [*BASE_MEMBERS__Node_] AS '[Node].[Content Name].MEMBERS'\n" +
+                "SET [*SORTED_ROW_AXIS] AS 'ORDER([*CJ_ROW_AXIS],[Measures].[*SORTED_MEASURE],BDESC)'\n" +
+                "SET [*CJ_COL_AXIS] AS 'GENERATE([*METRIC_CJ_SET], {([ActivityType].CURRENTMEMBER)})'\n" +
+                "MEMBER [ActivityType].[*CTX_MEMBER_SEL~SUM] AS 'SUM([*NATIVE_MEMBERS__ActivityType_])', SOLVE_ORDER=99\n" +
+                "MEMBER [Activity_Date].[*CTX_MEMBER_SEL~AGG] AS 'AGGREGATE([*NATIVE_MEMBERS__Activity_Date_])', SOLVE_ORDER=-303\n" +
+                "MEMBER [Measures].[*SORTED_MEASURE] AS '([Measures].[Number of Events],[ActivityType].[*CTX_MEMBER_SEL~SUM],[Sites].[*CTX_MEMBER_SEL~AGG],[Activity_Date].[*CTX_MEMBER_SEL~AGG])', SOLVE_ORDER=400\n" +
+                "MEMBER [Measures].[*TOP_Number of Events_SEL~SUM] AS 'RANK([Node].CURRENTMEMBER,[*TOP_SET])', SOLVE_ORDER=400\n" +
+                "MEMBER [Sites].[*CTX_MEMBER_SEL~AGG] AS 'AGGREGATE([*NATIVE_MEMBERS__Sites_])', SOLVE_ORDER=-302\n" +
+                "SELECT\n" +
+                "CROSSJOIN([*SORTED_COL_AXIS],[*BASE_MEMBERS__Measures_]) ON COLUMNS\n" +
+                ",[*SORTED_ROW_AXIS] ON ROWS\n" +
+                "FROM [Activity]\n"
+                +
+                "WHERE ([*CJ_SLICER_AXIS])\n"
+            ,
+            "");
+    }
+
 }
 
 // End NonEmptyTest.java

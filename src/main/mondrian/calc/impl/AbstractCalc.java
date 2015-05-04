@@ -27,7 +27,7 @@ import java.util.*;
 public abstract class AbstractCalc implements Calc {
     private final Calc[] calcs;
     protected final Type type;
-    protected final Exp exp;
+    public final Exp exp;
 
     /**
      * Creates an AbstractCalc.

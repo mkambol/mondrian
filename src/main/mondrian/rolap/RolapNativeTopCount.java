@@ -11,6 +11,7 @@
 */
 package mondrian.rolap;
 
+import mondrian.calc.Calc;
 import mondrian.mdx.MemberExpr;
 import mondrian.olap.*;
 import mondrian.rolap.aggmatcher.AggStar;
@@ -125,7 +126,7 @@ public class RolapNativeTopCount extends RolapNativeSet {
     NativeEvaluator createEvaluator(
         RolapEvaluator evaluator,
         FunDef fun,
-        Exp[] args)
+        Exp[] args, Calc calc)
     {
         boolean ascending;
 

@@ -11,6 +11,7 @@
 */
 package mondrian.rolap;
 
+import mondrian.calc.impl.AbstractCalc;
 import mondrian.olap.*;
 import mondrian.olap.fun.*;
 import mondrian.resource.MondrianResource;
@@ -2051,41 +2052,82 @@ public class SqlConstraintUtils {
      * measures in the query could conflict with the SQL constraint
      * being constructed.
      */
+
+    // Spike NOTE:  Introduce the Calc argument in this spike
+    // to allow the MemberExtractingVisitor to short-circuit
+    // when encountering the calc itself while walking the expression.
+    // If we encounter the calc (e.g. the non empty crossjoin) there
+    // is no need to check for conflict, since it's the expression
+    // itself that we're looking at, and presumably won't conflict with
+    // itself.  This was already the technique used with the crossjoin
+    // optimizer logic.
     public static boolean measuresConflictWithMembers(
-        Set<Member> measures, Member[] members)
+        Set<Member> measures, Member[] members, Calc calc)
     {
         Set<Member> membersNestedInMeasures = new HashSet<Member>();
 
         for (Member m : measures) {
             if (m.isCalculated()) {
                 Exp exp = m.getExpression();
+
+                ResolvedFunCall call = null;
+                if (calc != null && ((AbstractCalc)calc).exp instanceof ResolvedFunCall) {
+                    call = (ResolvedFunCall)((AbstractCalc)calc).exp;
+                }
+
                 exp.accept(
                     new MemberExtractingVisitor(
-                        membersNestedInMeasures, null, false));
+                        membersNestedInMeasures, call, false));
             }
         }
-        for (Member memberCheckedForConflict : members) {
-            for (Member memberInMeasure : membersNestedInMeasures) {
-                final boolean sameHierarchy =
-                    memberInMeasure.getHierarchy()
-                        .equals(memberCheckedForConflict.getHierarchy());
-                final boolean childOrEqual =
-                    memberCheckedForConflict.isAll()
-                        || memberInMeasure
-                            .isChildOrEqualTo(memberCheckedForConflict);
-                if (sameHierarchy && !childOrEqual) {
-                    return true;
-                }
+
+        for (Member memberInMeasure : membersNestedInMeasures) {
+            if(!anyMemberOverlaps(members, memberInMeasure)) {
+                return true;
             }
         }
+
         return false;
     }
 
+    /**
+     * Compares the array of members against memberInMeasure, returning
+     * true if any of the members are of the same hierarchy and
+     * is either [All] or a equal to or a child of memberInMeasure.
+     *
+     * This is used to identify whether whether the memberInMeasure
+     * is "overlapped" by any of the members.  For native evaluation
+     * we need to make sure that a member included as a result of
+     * a calculated measure does not fall outside of the set of members
+     * that will be used to constrain the native query, in which case
+     * we may exclude members incorrectly.
+     */
+    private static boolean anyMemberOverlaps(Member[] members, Member memberInMeasure) {
+        boolean memberIsCovered = false;
+        boolean encounteredHierarchy = false;
+        for (Member memberCheckedForConflict : members) {
+            final boolean sameHierarchy =
+                memberInMeasure.getHierarchy()
+                    .equals(memberCheckedForConflict.getHierarchy());
+            final boolean childOrEqual =
+                memberCheckedForConflict.isAll()
+                    || memberInMeasure
+                    .isChildOrEqualTo(memberCheckedForConflict);
+            if (sameHierarchy) {
+                encounteredHierarchy = true;
+            }
+            if (sameHierarchy && childOrEqual) {
+                memberIsCovered = true;
+            }
+        }
+        return !encounteredHierarchy || memberIsCovered;
+    }
+
     public static boolean measuresConflictWithMembers(
-        Set<Member> measuresMembers, CrossJoinArg[] cjArgs)
+        Set<Member> measuresMembers, CrossJoinArg[] cjArgs, Calc calc)
     {
         return measuresConflictWithMembers(
-            measuresMembers, getCJArgMembers(cjArgs));
+            measuresMembers, getCJArgMembers(cjArgs), calc);
     }
 
     private static Member[] getCJArgMembers(CrossJoinArg[] cjArgs) {
