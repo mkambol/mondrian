@@ -152,12 +152,13 @@ public final class IdBatchResolver {
             }
             Exp exp = (Exp)resolvedIdentifiers.get(parent);
             if (exp == null) {
-                exp = lookupExp(resolvedIdentifiers, parent);
+                exp = lookupExp(parent);
             }
             Member parentMember = getMemberFromExp(exp);
             if (!supportedMember(parentMember)) {
                 continue;
             }
+            resolvedIdentifiers.put(parent, (QueryPart)exp);
             batchResolveChildren(
                 parent, parentMember, identifiers, resolvedIdentifiers);
         }
@@ -185,12 +186,12 @@ public final class IdBatchResolver {
         }
     }
 
-    private Exp lookupExp(
-        Map<QueryPart, QueryPart> resolvedIdentifiers, Id parent)
+    private Exp lookupExp(Id parent)
     {
         try {
             Exp exp = Util.lookup(query, parent.getSegments(), false);
-            resolvedIdentifiers.put(parent, (QueryPart)exp);
+          //  System.out.println(exp.toString() + ":" + (exp instanceof UnresolvedFunCall));
+          //  resolvedIdentifiers.put(parent, (QueryPart)exp);
             return exp;
         } catch (Exception exception) {
             LOGGER.info(
