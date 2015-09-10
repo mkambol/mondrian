@@ -17,7 +17,6 @@ import mondrian.olap.fun.VisualTotalsFunDef.VisualTotalMember;
 import mondrian.resource.MondrianResource;
 import mondrian.rolap.agg.*;
 
-import mondrian.rolap.sql.SqlQuery;
 import org.apache.commons.collections.*;
 
 import java.util.*;
@@ -195,7 +194,7 @@ public abstract class RolapAggregationManager {
         if (CollectionUtils.isEmpty(evaluator.getAggregationLists())) {
             return request;
         }
-        if (evaluator.hasUnsatisfiableConstraint()) {
+        if (!evaluator.isSatisfiable()) {
             // the request has aggregation lists that are incompatible with
             // the current measure.
             return null;

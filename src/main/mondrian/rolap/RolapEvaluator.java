@@ -110,7 +110,7 @@ public class RolapEvaluator implements Evaluator {
     private Member[] nonAllMembers;
     private int commandCount;
     private Object[] commands;
-    private boolean unsatisfiableConstraint = false;
+    private boolean satisfiable = true;
 
     /**
      * Set of expressions actively being expanded. Prevents infinite cycle of
@@ -126,8 +126,8 @@ public class RolapEvaluator implements Evaluator {
         return compoundPredicates;
     }
 
-    public boolean hasUnsatisfiableConstraint() {
-        return unsatisfiableConstraint;
+    public boolean isSatisfiable() {
+        return satisfiable;
     }
 
     /**
@@ -213,12 +213,21 @@ public class RolapEvaluator implements Evaluator {
             // determined in the parent evaluator
             compoundPredicates.put(slicerPredicate.left, slicerPredicate.right);
         } else if (aggregationList != null) {
-            Pair<BitKey, StarPredicate> aggListPredicate =
-                buildCompoundPredicates(aggregationList);
+            Pair<BitKey, StarPredicate> aggListPredicate = getPredicate(aggregationList);
             if (aggListPredicate != null && aggListPredicate.right != null) {
                 compoundPredicates.put(aggListPredicate.left, aggListPredicate.right);
             }
         }
+    }
+
+    private Pair<BitKey, StarPredicate> getPredicate(
+            List<List<Member>> aggregationList)
+    {
+        CompoundPredicate compPredicate = new CompoundPredicate(
+                aggregationList, (RolapMeasure)currentMembers[0]);
+        Pair<BitKey, StarPredicate> aggListPredicate = compPredicate.getPredicate();
+        satisfiable = compPredicate.isSatisfiable();
+        return aggListPredicate;
     }
 
     /**
@@ -254,268 +263,6 @@ public class RolapEvaluator implements Evaluator {
         }
 
         // we expect client to set CellReader
-    }
-
-    private Pair<BitKey, StarPredicate>  buildCompoundPredicates(
-        List<List<Member>> aggregationList) {
-        if (currentMembers[0].isCalculated()) {
-            // need a base measure to build predicates
-            return null;
-        }
-        final RolapStoredMeasure measure =
-            (RolapStoredMeasure) currentMembers[0];
-        final RolapStar.Measure starMeasure =
-            (RolapStar.Measure) measure.getStarMeasure();
-        assert starMeasure != null;
-
-        BitKey compoundBitKey;
-        StarPredicate compoundPredicate;
-        Map<BitKey, List<RolapCubeMember[]>> compoundGroupMap;
-        boolean unsatisfiable;
-        int starColumnCount = starMeasure.getStar().getColumnCount();
-
-        compoundBitKey = BitKey.Factory.makeBitKey(starColumnCount);
-        compoundBitKey.clear();
-        compoundGroupMap =
-            new LinkedHashMap<BitKey, List<RolapCubeMember[]>>();
-        unsatisfiable =
-            makeCompoundGroup(
-                starColumnCount,
-                measure.getCube(),
-                aggregationList,
-                compoundGroupMap);
-
-        if (unsatisfiable) {
-            unsatisfiableConstraint = true;
-            return null;
-        }
-        compoundPredicate =
-            makeCompoundPredicate(compoundGroupMap, measure.getCube());
-        if (compoundPredicate != null) {
-            for (BitKey bitKey : compoundGroupMap.keySet()) {
-                compoundBitKey = compoundBitKey.or(bitKey);
-            }
-        }
-        return  Pair.of(compoundBitKey, compoundPredicate);
-    }
-
-
-    /**
-     * Groups members (or tuples) from the same compound (i.e. hierarchy) into
-     * groups that are constrained by the same set of columns.
-     *
-     * <p>E.g.
-     *
-     * <pre>Members
-     *     [USA].[CA],
-     *     [Canada].[BC],
-     *     [USA].[CA].[San Francisco],
-     *     [USA].[OR].[Portland]</pre>
-     *
-     * will be grouped into
-     *
-     * <pre>Group 1:
-     *     {[USA].[CA], [Canada].[BC]}
-     * Group 2:
-     *     {[USA].[CA].[San Francisco], [USA].[OR].[Portland]}</pre>
-     *
-     * <p>This helps with generating optimal form of sql.
-     *
-     * <p>In case of aggregating over a list of tuples, similar logic also
-     * applies.
-     *
-     * <p>For example:
-     *
-     * <pre>Tuples:
-     *     ([Gender].[M], [Store].[USA].[CA])
-     *     ([Gender].[F], [Store].[USA].[CA])
-     *     ([Gender].[M], [Store].[USA])
-     *     ([Gender].[F], [Store].[Canada])</pre>
-     *
-     * will be grouped into
-     *
-     * <pre>Group 1:
-     *     {([Gender].[M], [Store].[USA].[CA]),
-     *      ([Gender].[F], [Store].[USA].[CA])}
-     * Group 2:
-     *     {([Gender].[M], [Store].[USA]),
-     *      ([Gender].[F], [Store].[Canada])}</pre>
-     *
-     * <p>This function returns a boolean value indicating if any constraint
-     * can be created from the aggregationList. It is possible that only part
-     * of the aggregationList can be applied, which still leads to a (partial)
-     * constraint that is represented by the compoundGroupMap.
-     */
-    private static boolean makeCompoundGroup(
-        int starColumnCount,
-        RolapCube baseCube,
-        List<List<Member>> aggregationList,
-        Map<BitKey, List<RolapCubeMember[]>> compoundGroupMap)
-    {
-        // The more generalized aggregation as aggregating over tuples.
-        // The special case is a tuple defined by only one member.
-        int unsatisfiableTupleCount = 0;
-        for (List<Member> aggregation : aggregationList) {
-            boolean isTuple;
-            if (aggregation.size() > 0
-                && (aggregation.get(0) instanceof RolapCubeMember
-                || aggregation.get(0) instanceof VisualTotalsFunDef.VisualTotalMember))
-            {
-                isTuple = true;
-            } else {
-                ++unsatisfiableTupleCount;
-                continue;
-            }
-
-            BitKey bitKey = BitKey.Factory.makeBitKey(starColumnCount);
-            RolapCubeMember[] tuple;
-
-            tuple = new RolapCubeMember[aggregation.size()];
-            int i = 0;
-            for (Member member : aggregation) {
-                if (member instanceof VisualTotalsFunDef.VisualTotalMember) {
-                    tuple[i] = (RolapCubeMember)
-                        ((VisualTotalsFunDef.VisualTotalMember) member).getMember();
-                } else {
-                    tuple[i] = (RolapCubeMember)member;
-                }
-                i++;
-            }
-
-            boolean tupleUnsatisfiable = false;
-            for (RolapCubeMember member : tuple) {
-                // Tuple cannot be constrained if any of the member cannot be.
-                tupleUnsatisfiable =
-                    makeCompoundGroupForMember(member, baseCube, bitKey);
-                if (tupleUnsatisfiable) {
-                    // If this tuple is unsatisfiable, skip it and try to
-                    // constrain the next tuple.
-                    unsatisfiableTupleCount ++;
-                    break;
-                }
-            }
-
-            if (!tupleUnsatisfiable && !bitKey.isEmpty()) {
-                // Found tuple(columns) to constrain,
-                // now add it to the compoundGroupMap
-                addTupleToCompoundGroupMap(tuple, bitKey, compoundGroupMap);
-            }
-        }
-
-        return (unsatisfiableTupleCount == aggregationList.size());
-    }
-
-
-    private static void addTupleToCompoundGroupMap(
-        RolapCubeMember[] tuple,
-        BitKey bitKey,
-        Map<BitKey, List<RolapCubeMember[]>> compoundGroupMap)
-    {
-        List<RolapCubeMember[]> compoundGroup = compoundGroupMap.get(bitKey);
-        if (compoundGroup == null) {
-            compoundGroup = new ArrayList<RolapCubeMember[]>();
-            compoundGroupMap.put(bitKey, compoundGroup);
-        }
-        compoundGroup.add(tuple);
-    }
-
-    private static boolean makeCompoundGroupForMember(
-        RolapCubeMember member,
-        RolapCube baseCube,
-        BitKey bitKey)
-    {
-        RolapCubeMember levelMember = member;
-        boolean memberUnsatisfiable = false;
-        while (levelMember != null) {
-            RolapCubeLevel level = levelMember.getLevel();
-            // Only need to constrain the nonAll levels
-            if (!level.isAll()) {
-                RolapStar.Column column = level.getBaseStarKeyColumn(baseCube);
-                if (column != null) {
-                    bitKey.set(column.getBitPosition());
-                } else {
-                    // One level in a member causes the member to be
-                    // unsatisfiable.
-                    memberUnsatisfiable = true;
-                    break;
-                }
-            }
-
-            levelMember = levelMember.getParentMember();
-        }
-        return memberUnsatisfiable;
-    }
-
-    private static StarPredicate makeCompoundPredicate(
-        Map<BitKey, List<RolapCubeMember[]>> compoundGroupMap,
-        RolapCube baseCube)
-    {
-        List<StarPredicate> compoundPredicateList =
-            new ArrayList<StarPredicate> ();
-        for (List<RolapCubeMember[]> group : compoundGroupMap.values()) {
-            // e.g {[USA].[CA], [Canada].[BC]}
-            StarPredicate compoundGroupPredicate = null;
-            for (RolapCubeMember[] tuple : group) {
-                // [USA].[CA]
-                StarPredicate tuplePredicate = null;
-
-                for (RolapCubeMember member : tuple) {
-                    tuplePredicate = makeCompoundPredicateForMember(
-                        member, baseCube, tuplePredicate);
-                }
-                if (tuplePredicate != null) {
-                    if (compoundGroupPredicate == null) {
-                        compoundGroupPredicate = tuplePredicate;
-                    } else {
-                        compoundGroupPredicate =
-                            compoundGroupPredicate.or(tuplePredicate);
-                    }
-                }
-            }
-
-            if (compoundGroupPredicate != null) {
-                // Sometimes the compound member list does not constrain any
-                // columns; for example, if only AllLevel is present.
-                compoundPredicateList.add(compoundGroupPredicate);
-            }
-        }
-
-        StarPredicate compoundPredicate = null;
-
-        if (compoundPredicateList.size() > 1) {
-            compoundPredicate = new OrPredicate(compoundPredicateList);
-        } else if (compoundPredicateList.size() == 1) {
-            compoundPredicate = compoundPredicateList.get(0);
-        }
-
-        return compoundPredicate;
-    }
-
-    private static StarPredicate makeCompoundPredicateForMember(
-        RolapCubeMember member,
-        RolapCube baseCube,
-        StarPredicate memberPredicate)
-    {
-        while (member != null) {
-            RolapCubeLevel level = member.getLevel();
-            if (!level.isAll()) {
-                RolapStar.Column column = level.getBaseStarKeyColumn(baseCube);
-                if (memberPredicate == null) {
-                    memberPredicate =
-                        new ValueColumnPredicate(column, member.getKey());
-                } else {
-                    memberPredicate =
-                        memberPredicate.and(
-                            new ValueColumnPredicate(column, member.getKey()));
-                }
-            }
-            // Don't need to constrain USA if CA is unique
-            if (member.getLevel().isUnique()) {
-                break;
-            }
-            member = member.getParentMember();
-        }
-        return memberPredicate;
     }
 
     /**
@@ -812,7 +559,8 @@ public class RolapEvaluator implements Evaluator {
             disjointSlicerTuple = SqlConstraintUtils.isDisjointTuple(tuples);
             multiLevelSlicerTuple =
               SqlConstraintUtils.hasMultipleLevelSlicer(this);
-            slicerPredicate = buildCompoundPredicates(tuples);
+            slicerPredicate = getPredicate(tuples);
+            //slicerPredicate = buildCompoundPredicates(tuples);
         } else {
             disjointSlicerTuple = false;
             multiLevelSlicerTuple = false;
