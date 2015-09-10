@@ -226,6 +226,15 @@ public class CellRequest {
         compoundPredicateMap.put(compoundBitKey, compoundPredicate);
     }
 
+
+    public void addAggregateLists(Map<BitKey, StarPredicate> compoundPredicates) {
+        if (compoundPredicateMap == null) {
+            compoundPredicateMap = new TreeMap<BitKey, StarPredicate>();
+        }
+        compoundPredicateMap.putAll(compoundPredicates);
+    }
+
+
     /**
      * Returns the measure of this cell request.
      *

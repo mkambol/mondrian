@@ -211,12 +211,12 @@ public class AggregateFunDef extends AbstractAggregateFunDef {
             // enforces a rollup policy of partial, we cannot safely
             // optimize the tuples list as it might end up rolling up to
             // the parent while not all children are actually accessible.
-            for (List<Member> tupleMembers : tupleList) {
-                for (Member member : tupleMembers) {
+            if (tupleList.size() > 0) {
+                for (Member member : tupleList.get(0)) {
                     final RollupPolicy policy =
                         evaluator.getSchemaReader().getRole()
                             .getAccessDetails(member.getHierarchy())
-                                .getRollupPolicy();
+                            .getRollupPolicy();
                     if (policy == RollupPolicy.PARTIAL) {
                         return false;
                     }

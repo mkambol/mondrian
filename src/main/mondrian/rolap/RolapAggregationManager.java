@@ -17,6 +17,7 @@ import mondrian.olap.fun.VisualTotalsFunDef.VisualTotalMember;
 import mondrian.resource.MondrianResource;
 import mondrian.rolap.agg.*;
 
+import mondrian.rolap.sql.SqlQuery;
 import org.apache.commons.collections.*;
 
 import java.util.*;
@@ -179,84 +180,27 @@ public abstract class RolapAggregationManager {
     public static CellRequest makeRequest(
         RolapEvaluator evaluator)
     {
-        final Member[] currentMembers = evaluator.getNonAllMembers();
-        final List<List<List<Member>>> aggregationLists =
-            evaluator.getAggregationLists();
-
-        final RolapStoredMeasure measure =
-            (RolapStoredMeasure) currentMembers[0];
-        final RolapStar.Measure starMeasure =
-            (RolapStar.Measure) measure.getStarMeasure();
-        assert starMeasure != null;
-        int starColumnCount = starMeasure.getStar().getColumnCount();
-
         final CellRequest request =
             makeCellRequest(
-                currentMembers,
+                evaluator.getNonAllMembers(),
                 false,
                 false,
                 null,
                 evaluator, null,
                 Collections.<OlapElement>emptyList());
-
         if (request == null) {
             // Current request cannot be processed. Per API, return null.
             return null;
         }
-
-        // Now setting the compound keys.
-        // First find out the columns referenced in the aggregateMemberList.
-        // Each list defines a compound member.
-        if (aggregationLists == null) {
+        if (CollectionUtils.isEmpty(evaluator.getAggregationLists())) {
             return request;
         }
-
-        BitKey compoundBitKey;
-        StarPredicate compoundPredicate;
-        Map<BitKey, List<RolapCubeMember[]>> compoundGroupMap;
-        boolean unsatisfiable;
-
-         // For each aggregationList, generate the optimal form of
-         // compoundPredicate. These compoundPredicates are AND'ed together when
-         // sql is generated for them.
-        for (List<List<Member>> aggregationList : aggregationLists) {
-            compoundBitKey = BitKey.Factory.makeBitKey(starColumnCount);
-            compoundBitKey.clear();
-            compoundGroupMap =
-                new LinkedHashMap<BitKey, List<RolapCubeMember[]>>();
-
-            // Go through the compound members/tuples once and separate them
-            // into groups.
-            List<List<RolapMember>> rolapAggregationList =
-                new ArrayList<List<RolapMember>>();
-            for (List<Member> members : aggregationList) {
-                // REVIEW: do we need to copy?
-                List<RolapMember> rolapMembers = Util.cast(members);
-                rolapAggregationList.add(rolapMembers);
-            }
-
-            unsatisfiable =
-                makeCompoundGroup(
-                    starColumnCount,
-                    measure.getCube(),
-                    rolapAggregationList,
-                    compoundGroupMap);
-
-            if (unsatisfiable) {
-                return null;
-            }
-            compoundPredicate =
-                makeCompoundPredicate(compoundGroupMap, measure.getCube());
-
-            if (compoundPredicate != null) {
-                 // Only add the compound constraint when it is not empty.
-                for (BitKey bitKey : compoundGroupMap.keySet()) {
-                    compoundBitKey = compoundBitKey.or(bitKey);
-                }
-                request.addAggregateList(compoundBitKey, compoundPredicate);
-            }
+        if (evaluator.hasUnsatisfiableConstraint()) {
+            // the request has aggregation lists that are incompatible with
+            // the current measure.
+            return null;
         }
-
+        request.addAggregateLists(evaluator.getCompoundPredicates());
         return request;
     }
 
