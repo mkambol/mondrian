@@ -199,7 +199,11 @@ public abstract class RolapAggregationManager {
             // the current measure.
             return null;
         }
-        request.addAggregateLists(evaluator.getCompoundPredicates());
+        for (CompoundPredicate predicate : evaluator.getCompoundPredicates()) {
+            request.addAggregateList(predicate.getBitKey(), predicate.getPredicate());
+            request.addPredicateString(predicate.getPredicateString());
+        }
+        //request.addAggregateLists(evaluator.getCompoundPredicates());
         return request;
     }
 

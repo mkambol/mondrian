@@ -95,9 +95,10 @@ public class RolapEvaluator implements Evaluator {
      */
     protected final List<List<List<Member>>> aggregationLists;
 
-    protected final Map<BitKey, StarPredicate>  compoundPredicates =
-        new HashMap<BitKey, StarPredicate>();
-    protected  Pair<BitKey, StarPredicate> slicerPredicate;
+   protected final List<CompoundPredicate>  compoundPredicates =
+        new ArrayList<CompoundPredicate>();
+
+    protected  CompoundPredicate slicerPredicate;
 
     private final List<Member> slicerMembers;
 
@@ -122,7 +123,7 @@ public class RolapEvaluator implements Evaluator {
         return root.activeNativeExpansions;
     }
 
-    public Map<BitKey, StarPredicate>  getCompoundPredicates() {
+    public List<CompoundPredicate>  getCompoundPredicates() {
         return compoundPredicates;
     }
 
@@ -188,7 +189,7 @@ public class RolapEvaluator implements Evaluator {
             aggregationLists =
                 new ArrayList<List<List<Member>>>(parent.aggregationLists);
         }
-        compoundPredicates.putAll(parent.compoundPredicates);
+        compoundPredicates.addAll(parent.compoundPredicates);
 
         if (parent.slicerPredicate != null) {
             this.slicerPredicate = parent.slicerPredicate;
@@ -211,23 +212,24 @@ public class RolapEvaluator implements Evaluator {
         if (aggregationList != null && aggregationList.equals(slicerTuples)) {
             // the compound predicates for the slicer have already been
             // determined in the parent evaluator
-            compoundPredicates.put(slicerPredicate.left, slicerPredicate.right);
+            compoundPredicates.add(slicerPredicate);
         } else if (aggregationList != null) {
-            Pair<BitKey, StarPredicate> aggListPredicate = getPredicate(aggregationList);
-            if (aggListPredicate != null && aggListPredicate.right != null) {
-                compoundPredicates.put(aggListPredicate.left, aggListPredicate.right);
+            CompoundPredicate compPred = getPredicate(aggregationList);
+            if (compPred != null && compPred.getPredicate() != null) {
+                compoundPredicates.add(compPred);
             }
         }
     }
 
-    private Pair<BitKey, StarPredicate> getPredicate(
+    private CompoundPredicate getPredicate(
             List<List<Member>> aggregationList)
     {
         CompoundPredicate compPredicate = new CompoundPredicate(
                 aggregationList, (RolapMeasure)currentMembers[0]);
-        Pair<BitKey, StarPredicate> aggListPredicate = compPredicate.getPredicate();
+
+        //Pair<BitKey, StarPredicate> aggListPredicate = compPredicate.getPredicate();
         satisfiable = compPredicate.isSatisfiable();
-        return aggListPredicate;
+        return compPredicate;
     }
 
     /**

@@ -198,7 +198,7 @@ public class AggregationKey
      * @param compoundPredicateList Predicate list
      * @return list of predicate strings
      */
-    public static List<String> getCompoundPredicateStringList(
+    public static List<String> getCompoundPredicateStringList_(
         RolapStar star,
         List<StarPredicate> compoundPredicateList)
     {

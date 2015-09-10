@@ -1450,9 +1450,10 @@ public class SegmentCacheManager {
                         star.getFactTable().getAlias(),
                         request.getConstrainedColumnsBitKey(),
                         request.getMappedCellValues(),
-                        AggregationKey.getCompoundPredicateStringList(
-                            star,
-                            key.getCompoundPredicateList()));
+                        request.getCompoundPredicateStrings());
+//                        AggregationKey.getCompoundPredicateStringList(
+//                            star,
+//                            key.getCompoundPredicateList()));
 
             final Map<SegmentHeader, Future<SegmentBody>> headerMap =
                 new HashMap<SegmentHeader, Future<SegmentBody>>();

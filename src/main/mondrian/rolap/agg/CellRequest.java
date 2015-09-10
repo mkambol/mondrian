@@ -120,6 +120,13 @@ public class CellRequest {
      */
     private SortedMap<BitKey, StarPredicate> compoundPredicateMap = null;
 
+
+    /*
+    * TODO doc
+     */
+    private List<String> compoundPredicateStrings = null;
+
+
     /**
      * Whether the request is impossible to satisfy. This is set to 'true' if
      * contradictory constraints are applied to the same column. For example,
@@ -227,6 +234,17 @@ public class CellRequest {
     }
 
 
+    public void addPredicateString(
+            String predicateString)
+    {
+        if (compoundPredicateStrings == null) {
+            compoundPredicateStrings= new ArrayList<String>();
+        }
+        compoundPredicateStrings.add(predicateString);
+    }
+
+
+
     public void addAggregateLists(Map<BitKey, StarPredicate> compoundPredicates) {
         if (compoundPredicateMap == null) {
             compoundPredicateMap = new TreeMap<BitKey, StarPredicate>();
@@ -273,6 +291,10 @@ public class CellRequest {
      */
     SortedMap<BitKey, StarPredicate> getCompoundPredicateMap() {
         return compoundPredicateMap;
+    }
+
+    public List<String> getCompoundPredicateStrings() {
+        return compoundPredicateStrings;
     }
 
     /**

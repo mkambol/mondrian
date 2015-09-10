@@ -16,6 +16,7 @@ import mondrian.olap.Member;
 import mondrian.olap.fun.VisualTotalsFunDef;
 import mondrian.rolap.agg.OrPredicate;
 import mondrian.rolap.agg.ValueColumnPredicate;
+import mondrian.rolap.sql.SqlQuery;
 import mondrian.util.Pair;
 
 import java.util.*;
@@ -31,20 +32,62 @@ import java.util.*;
 public class CompoundPredicate {
 
     private final Pair<BitKey, StarPredicate> predicate;
+    private final String predicateString;
     private boolean satisfiable = true;
 
     public CompoundPredicate(
             List<List<Member>> tupleList, RolapMeasure measure)
     {
         this.predicate = predicateFromTupleList(tupleList, measure);
+        this.predicateString = initCompoundPredicateStringList(measure);
     }
 
-    public Pair<BitKey, StarPredicate> getPredicate() {
-        return predicate;
+    public StarPredicate getPredicate() {
+        return predicate == null ? null : predicate.right;
+    }
+
+    public BitKey getBitKey() {
+        return predicate == null ? null : predicate.left;
+    }
+
+    public String getPredicateString() {
+        return predicateString;
     }
 
     public boolean isSatisfiable() {
         return satisfiable;
+    }
+
+    /**
+     * Returns a list of compound predicates, expressed as SQL strings.
+     *
+     * @param measure a non-calculated, base measure
+     * @return list of predicate strings
+     */
+    public  String initCompoundPredicateStringList(
+            RolapMeasure measure)
+    {
+        if (measure.isCalculated() || getPredicate() == null) {
+            return null;
+        }
+        RolapStar star = getStar(measure);
+
+        final StringBuilder buf = new StringBuilder();
+        SqlQuery query =
+                new SqlQuery(
+                        star.getSqlQueryDialect());
+        buf.setLength(0);
+        getPredicate().toSql(query, buf);
+        return buf.toString();
+    }
+
+    private RolapStar getStar(RolapMeasure measure) {
+        final RolapStoredMeasure storedMeasure =
+                (RolapStoredMeasure) measure;
+        final RolapStar.Measure starMeasure =
+                (RolapStar.Measure) storedMeasure.getStarMeasure();
+        assert starMeasure != null;
+        return starMeasure.getStar();
     }
 
     private Pair<BitKey, StarPredicate> predicateFromTupleList(
@@ -53,17 +96,13 @@ public class CompoundPredicate {
             // need a base measure to build predicates
             return null;
         }
-        final RolapStoredMeasure storedMeasure =
-                (RolapStoredMeasure) measure;
-        final RolapStar.Measure starMeasure =
-                (RolapStar.Measure) storedMeasure.getStarMeasure();
-        assert starMeasure != null;
+        RolapCube cube = ((RolapStoredMeasure)measure).getCube();
 
         BitKey compoundBitKey;
         StarPredicate compoundPredicate;
         Map<BitKey, List<RolapCubeMember[]>> compoundGroupMap;
         boolean unsatisfiable;
-        int starColumnCount = starMeasure.getStar().getColumnCount();
+        int starColumnCount = getStar(measure).getColumnCount();
 
         compoundBitKey = BitKey.Factory.makeBitKey(starColumnCount);
         compoundBitKey.clear();
@@ -72,7 +111,7 @@ public class CompoundPredicate {
         unsatisfiable =
                 makeCompoundGroup(
                         starColumnCount,
-                        storedMeasure.getCube(),
+                        cube,
                         tupleList,
                         compoundGroupMap);
 
@@ -81,7 +120,7 @@ public class CompoundPredicate {
             return null;
         }
         compoundPredicate =
-                makeCompoundPredicate(compoundGroupMap, storedMeasure.getCube());
+                makeCompoundPredicate(compoundGroupMap, cube);
         if (compoundPredicate != null) {
             for (BitKey bitKey : compoundGroupMap.keySet()) {
                 compoundBitKey = compoundBitKey.or(bitKey);

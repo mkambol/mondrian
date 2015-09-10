@@ -628,10 +628,10 @@ class BatchLoader {
         // Is request matched by one of the headers we intend to load?
         final Map<String, Comparable> mappedCellValues =
             request.getMappedCellValues();
-        final List<String> compoundPredicates =
-            AggregationKey.getCompoundPredicateStringList(
-                key.getStar(),
-                key.getCompoundPredicateList());
+        final List<String> compoundPredicates = request.getCompoundPredicateStrings();
+//            AggregationKey.getCompoundPredicateStringList(
+//                key.getStar(),
+//                key.getCompoundPredicateList());
 
         for (SegmentHeader header : cacheHeaders) {
             if (SegmentCacheIndexImpl.matches(
@@ -727,9 +727,10 @@ class BatchLoader {
                     star.getFactTable().getAlias(),
                     request.getConstrainedColumnsBitKey(),
                     mappedCellValues,
-                    AggregationKey.getCompoundPredicateStringList(
-                        star,
-                        key.getCompoundPredicateList()));
+                    request.getCompoundPredicateStrings());
+//                    AggregationKey.getCompoundPredicateStringList(
+//                        star,
+//                        key.getCompoundPredicateList()));
             if (!rollup.isEmpty()) {
                 rollups.add(
                     new RollupInfo(
