@@ -963,7 +963,7 @@ public class CrossJoinFunDef extends FunDefBase {
                 // see MONDRIAN-2425
                 CancellationChecker.checkCancelOrTimeout(
                     currentIteration++, execution);
-                if (checkData(
+                if (tupleContainsCalcs( cursor.current() ) || checkData(
                         nonAllMembers,
                         nonAllMembers.length - 1,
                         measureSet,
@@ -976,6 +976,13 @@ public class CrossJoinFunDef extends FunDefBase {
         } finally {
             evaluator.restore(savepoint);
         }
+    }
+
+    private boolean tupleContainsCalcs( List<Member> current ) {
+        return current.stream()
+          .filter( Member::isCalculated )
+          .findFirst()
+          .isPresent();
     }
 
     /**
