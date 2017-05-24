@@ -4,7 +4,7 @@
 // http://www.eclipse.org/legal/epl-v10.html.
 // You must accept the terms of that agreement to use this software.
 //
-// Copyright (C) 2002-2014 Pentaho and others
+// Copyright (C) 2002-2017 Pentaho and others
 // All Rights Reserved.
 */
 package mondrian.olap4j;
@@ -345,6 +345,17 @@ class MondrianOlap4jExtra implements XmlaHandler.XmlaExtra {
             RolapConnection rConn = conn.unwrap(RolapConnection.class);
             rConn.getCacheControl(null).flushSchema(
                 rConn.getSchema());
+        } catch (SQLException e) {
+            throw new OlapException(e);
+        }
+    }
+
+    @Override public void flushAllSchemas(OlapConnection conn)
+      throws OlapException
+    {
+        try {
+            conn.unwrap(RolapConnection.class)
+              .getCacheControl(null).flushSchemaCache();
         } catch (SQLException e) {
             throw new OlapException(e);
         }

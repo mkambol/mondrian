@@ -5,7 +5,7 @@
 // You must accept the terms of that agreement to use this software.
 //
 // Copyright (C) 2003-2005 Julian Hyde
-// Copyright (C) 2005-2015 Pentaho
+// Copyright (C) 2005-2017 Pentaho
 // All Rights Reserved.
 */
 package mondrian.xmla;
@@ -13,6 +13,7 @@ package mondrian.xmla;
 import mondrian.olap.MondrianProperties;
 import mondrian.olap.Util;
 import mondrian.olap4j.IMondrianOlap4jProperty;
+import mondrian.rolap.RolapConnection;
 import mondrian.util.CompositeList;
 import mondrian.xmla.impl.DefaultSaxWriter;
 
@@ -3124,9 +3125,20 @@ public class XmlaHandler {
 
         /**
          * Makes the connection send a command to the server
-         * to flush all caches.
+         * to flush the cache of the schema associated with conn.
          */
         void flushSchemaCache(OlapConnection conn) throws OlapException;
+
+        /**
+         * Flushes *all* schemas (instead of just the one directly
+         * associated with the OlapConnection.  To flush individually
+         * use {@link #flushSchemaCache(OlapConnection)}).
+         */
+        default void flushAllSchemas(OlapConnection conn) throws OlapException {
+            throw new UnsupportedOperationException(
+                "XmlaExtra.flushAllSchemas not implemented in "
+                + this.getClass().getName());
+        }
 
         /**
          * Returns the key for a given member.
