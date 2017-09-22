@@ -6514,6 +6514,55 @@ public class NonEmptyTest extends BatchTestCase {
                         + "Row #0: 1\n");
     }
 
+  public void testCalcMeasureInVirtualCubeWithoutBaseComponents() {
+    // http://jira.pentaho.com/browse/ANALYZER-3630
+    propSaver.set( MondrianProperties.instance().EnableNativeNonEmpty, true );
+    final TestContext context =
+      TestContext.instance().withSchema(
+        "<Schema name=\"FoodMart\">"
+          + "  <Dimension name=\"Store\">"
+          + "    <Hierarchy hasAll=\"true\" primaryKey=\"store_id\">"
+          + "      <Table name=\"store\" />"
+          + "      <Level name=\"Store Country\" column=\"store_country\" uniqueMembers=\"true\" />"
+          + "      <Level name=\"Store State\" column=\"store_state\" uniqueMembers=\"true\" />"
+          + "    </Hierarchy>"
+          + "  </Dimension>"
+          + "  <Dimension name=\"Time\" type=\"TimeDimension\">\n"
+          + "    <Hierarchy hasAll=\"false\" primaryKey=\"time_id\">\n"
+          + "      <Table name=\"time_by_day\"/>\n"
+          + "      <Level name=\"Year\" column=\"the_year\" type=\"Numeric\" uniqueMembers=\"true\"\n"
+          + "          levelType=\"TimeYears\"/>\n"
+          + "      <Level name=\"Quarter\" column=\"quarter\" uniqueMembers=\"false\"\n"
+          + "          levelType=\"TimeQuarters\"/>\n"
+          + "    </Hierarchy>\n"
+          + "    </Dimension>"
+          + "  <Cube name=\"Sales\" defaultMeasure=\"Unit Sales\">"
+          + "    <Table name=\"sales_fact_1997\" />"
+          + "    <DimensionUsage name=\"Store\" source=\"Store\" foreignKey=\"store_id\" />"
+          + "    <DimensionUsage name=\"Time\" source=\"Time\" foreignKey=\"time_id\" />"
+          + "    <Measure name=\"Unit Sales\" column=\"unit_sales\" aggregator=\"sum\" formatString=\"Standard\" />"
+
+          + "    <CalculatedMember name=\"dummyMeasure\" dimension=\"Measures\">"
+          + "      <Formula>[Measures].[Unit Sales]</Formula>"
+          + "    </CalculatedMember>"
+          + "    <CalculatedMember name=\"dummyMeasure2\" dimension=\"Measures\">"
+          + "      <Formula>[Measures].[dummyMeasure]</Formula>"
+          + "    </CalculatedMember>"
+          + "  </Cube>"
+          + "  <VirtualCube defaultMeasure=\"dummyMeasure\" name=\"virtual\">"
+          + "    <VirtualCubeDimension name=\"Store\" />"
+          + "    <VirtualCubeDimension name=\"Time\" />"
+          + "    <VirtualCubeMeasure name=\"[Measures].[dummyMeasure2]\" cubeName=\"Sales\" />"
+          + "  </VirtualCube>"
+          + "</Schema>" );
+    verifySameNativeAndNot(
+      "select "
+        + " [Measures].[dummyMeasure2] on COLUMNS, "
+        + " NON EMPTY CrossJoin([Store].[Store State].Members, Time.[Year].members) ON ROWS "
+        + " from [virtual] ",
+      "", context );
+  }
+
 }
 
 // End NonEmptyTest.java
