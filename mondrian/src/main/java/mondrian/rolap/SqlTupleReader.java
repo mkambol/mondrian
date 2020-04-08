@@ -38,6 +38,8 @@ import java.util.*;
 
 import javax.sql.DataSource;
 
+import static mondrian.olap.fun.sort.Sorter.hierarchizeTupleList;
+
 /**
  * Reads the members of a single level (level.members) or of multiple levels
  * (crossjoin).
@@ -690,7 +692,7 @@ public class SqlTupleReader implements TupleReader {
         // they originally appeared in the cross product
         int enumTargetCount = getEnumTargetCount();
         if (enumTargetCount > 0) {
-            tupleList = FunUtil.hierarchizeTupleList(tupleList, false);
+            tupleList = hierarchizeTupleList(tupleList, false);
         }
         return tupleList;
     }

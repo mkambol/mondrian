@@ -14,6 +14,7 @@ import mondrian.calc.*;
 import mondrian.calc.impl.AbstractListCalc;
 import mondrian.mdx.ResolvedFunCall;
 import mondrian.olap.*;
+import mondrian.olap.fun.sort.Sorter;
 
 import java.util.List;
 import java.util.Map;
@@ -122,11 +123,11 @@ class TopBottomPercentSumFunDef extends FunDefBase {
                 return list;
             }
             Map<List<Member>, Object> mapMemberToValue =
-                evaluateTuples(evaluator, calc, list);
+                sorter.evaluateTuples(evaluator, calc, list);
             final int savepoint = evaluator.savepoint();
             try {
                 evaluator.setNonEmpty(false);
-                list = sortTuples(
+                list = sorter.sortTuples(
                     evaluator,
                     list,
                     list,

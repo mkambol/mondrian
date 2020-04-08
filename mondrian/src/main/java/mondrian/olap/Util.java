@@ -13,6 +13,7 @@ package mondrian.olap;
 import mondrian.mdx.*;
 import mondrian.olap.fun.FunUtil;
 import mondrian.olap.fun.Resolver;
+import mondrian.olap.fun.sort.Sorter;
 import mondrian.olap.type.Type;
 import mondrian.resource.MondrianResource;
 import mondrian.rolap.*;
@@ -760,7 +761,7 @@ public class Util extends XOMUtil {
                 for (int j = i + 1; j < names.size(); j++) {
                     List<Member> childrenList =
                         schemaReader.getMemberChildren(bestChild);
-                    FunUtil.hierarchizeMemberList(childrenList, false);
+                    Sorter.hierarchizeMemberList(childrenList, false);
                     if (matchType == MatchType.AFTER) {
                         bestChild = childrenList.get(0);
                     } else {
