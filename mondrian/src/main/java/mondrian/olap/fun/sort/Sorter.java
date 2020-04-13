@@ -10,6 +10,7 @@
 */
 package mondrian.olap.fun.sort;
 
+import com.google.common.annotations.VisibleForTesting;
 import mondrian.calc.Calc;
 import mondrian.calc.TupleCollections;
 import mondrian.calc.TupleCursor;
@@ -28,7 +29,6 @@ import mondrian.rolap.RolapUtil;
 import mondrian.server.Execution;
 
 import mondrian.util.CancellationChecker;
-import mondrian.util.Pair;
 import org.apache.commons.collections.ComparatorUtils;
 import org.apache.commons.collections.comparators.ComparatorChain;
 import org.apache.log4j.Logger;
@@ -42,6 +42,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.PriorityQueue;
 
 import static mondrian.olap.Util.newInternal;
@@ -49,21 +50,13 @@ import static mondrian.olap.fun.FunUtil.DoubleNull;
 import static mondrian.olap.fun.FunUtil.IntegerNull;
 import static org.eigenbase.xom.XOMUtil.discard;
 
-/**
- * {@code FunUtil} contains a set of methods useful within the {@code mondrian.olap.fun} package.
- *
- * @author jhyde
- * @since 1.0
- */
 @SuppressWarnings( "squid:S4274" )
 public class Sorter {
 
   private static final String SORT_TIMING_NAME = "Sort";
   private static final String SORT_EVAL_TIMING_NAME = "EvalForSort";
 
-
   private static final Logger LOGGER = Logger.getLogger( Sorter.class );
-
 
   /**
    * For each member in a list, evaluates an expression and creates a map from members to values.
@@ -218,6 +211,15 @@ public class Sorter {
     }
   }
 
+  public static boolean listEquals( List<Member> a1, List<Member> a2 ) {
+    for ( int i = 0; i < a1.size(); i++ ) {
+      if ( !Objects.equals( a1.get( i ), a2.get( i ) ) ) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /**
    * Sorts a list of members according to a list of SortKeySpecs. An in-place, Stable sort. Helper function for MDX
    * OrderSet function.
@@ -281,7 +283,7 @@ public class Sorter {
    * @param arity         Number of members in each tuple
    * @return sorted list (never null)
    */
-  public TupleList sortTuples(
+  public static TupleList sortTuples(
     Evaluator evaluator,
     TupleIterable tupleIterable,
     TupleList tupleList,
@@ -295,16 +297,8 @@ public class Sorter {
     // iterator and evaluate the sort expressions at the same time.
     List<List<Member>> tupleArrayList;
     if ( tupleList == null ) {
-      tupleArrayList = new ArrayList<>();
       final TupleCursor cursor = tupleIterable.tupleCursor();
-      int currentIteration = 0;
-      Execution execution =
-        evaluator.getQuery().getStatement().getCurrentExecution();
-      while ( cursor.forward() ) {
-        CancellationChecker.checkCancelOrTimeout(
-          currentIteration++, execution );
-        tupleArrayList.add( cursor.current() );
-      }
+      tupleArrayList = iterableToList( evaluator, cursor );
       if ( tupleArrayList.size() <= 1 ) {
         return new DelegatingTupleList(
           tupleIterable.getArity(),
@@ -335,13 +329,22 @@ public class Sorter {
     } else {
       comparator =
         new HierarchicalTupleComparator( evaluator, exp, arity, desc );
+
     }
-
     Arrays.sort( tuples, comparator );
-
     logTuples( tupleList, "Sorter.sortTuples" );
-
     return result;
+  }
+
+  private static TupleList iterableToList( Evaluator evaluator, TupleCursor cursor ) {
+    TupleList tupleArrayList = TupleCollections.createList( cursor.getArity() );
+    int currentIteration = 0;
+    Execution execution = evaluator.getQuery().getStatement().getCurrentExecution();
+    while ( cursor.forward() ) {
+      CancellationChecker.checkCancelOrTimeout( currentIteration++, execution );
+      tupleArrayList.addCurrent( cursor );
+    }
+    return tupleArrayList;
   }
 
   /**
@@ -395,18 +398,14 @@ public class Sorter {
    *
    * <p>NOTE: This function does not preserve the contents of the validator.
    */
-  public TupleList sortTuples(
+  public static TupleList sortTuples(
     Evaluator evaluator,
     TupleIterable tupleIter,
     TupleList tupleList,
     List<SortKeySpec> keySpecList,
     int arity ) {
     if ( tupleList == null ) {
-      tupleList = TupleCollections.createList( arity );
-      TupleCursor cursor = tupleIter.tupleCursor();
-      while ( cursor.forward() ) {
-        tupleList.addCurrent( cursor );
-      }
+      tupleList = iterableToList( evaluator, tupleIter.tupleCursor() );
     }
     if ( tupleList.size() <= 1 ) {
       return tupleList;
@@ -414,30 +413,33 @@ public class Sorter {
 
     ComparatorChain chain = new ComparatorChain();
     for ( SortKeySpec key : keySpecList ) {
-      boolean brk = key.getDirection().brk;
-      boolean orderByKey =
-        key.getKey().isWrapperFor( MemberOrderKeyFunDef.CalcImpl.class );
-      if ( brk ) {
-        TupleExpMemoComparator comp =
-          new TupleExpMemoComparator.BreakTupleComparator( evaluator, key.getKey(), arity );
-        comp.preloadValues( tupleList );
-        chain.addComparator( comp, key.getDirection().descending );
-      } else if ( orderByKey ) {
-        TupleExpMemoComparator comp =
-          new HierarchicalTupleKeyComparator(
-            evaluator, key.getKey(), arity );
-        comp.preloadValues( tupleList );
-        chain.addComparator( comp, key.getDirection().descending );
-      } else {
-        TupleComparator.TupleExpComparator comp =
-          new HierarchicalTupleComparator(
-            evaluator, key.getKey(), arity, key.getDirection().descending );
-        chain.addComparator( comp, false );
-      }
+      applySortSpecToComparator( evaluator, arity, chain, key );
     }
     tupleList.sort( chain );
     logTuples( tupleList, "Sorter.sortTuples" );
     return tupleList;
+  }
+
+  @VisibleForTesting
+  static void applySortSpecToComparator( Evaluator evaluator, int arity, ComparatorChain chain,
+                                         SortKeySpec key ) {
+    boolean brk = key.getDirection().brk;
+    boolean orderByKey =
+      key.getKey().isWrapperFor( MemberOrderKeyFunDef.CalcImpl.class );
+    boolean direction = key.getDirection().descending;
+    if ( brk ) {
+      TupleExpMemoComparator comp =
+        new TupleExpMemoComparator.BreakTupleComparator( evaluator, key.getKey(), arity );
+      chain.addComparator( comp, direction );
+    } else if ( orderByKey ) {
+      TupleExpMemoComparator comp =
+        new HierarchicalTupleKeyComparator( evaluator, key.getKey(), arity );
+      chain.addComparator( comp, direction );
+    } else {
+      TupleComparator.TupleExpComparator comp =
+        new HierarchicalTupleComparator( evaluator, key.getKey(), arity, direction );
+      chain.addComparator( comp, false ); // ordering handled in the comparator.
+    }
   }
 
   private static void logTuples( TupleList tupleList, String description ) {
@@ -946,7 +948,7 @@ public class Sorter {
   /**
    * Tuple consisting of an object and an integer.
    *
-   * <p>Similar to {@link Pair}, but saves boxing overhead of converting
+   * <p>Similar to {@link mondrian.util.Pair}, but saves boxing overhead of converting
    * {@code int} to {@link Integer}.
    */
   public static class ObjIntPair<T> {

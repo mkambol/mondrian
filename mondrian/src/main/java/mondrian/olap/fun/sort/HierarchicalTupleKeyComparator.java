@@ -21,14 +21,13 @@ import mondrian.olap.Util;
 
 import java.util.List;
 
-class HierarchicalTupleKeyComparator
-  extends TupleExpMemoComparator {
+class HierarchicalTupleKeyComparator extends TupleExpMemoComparator {
 
   HierarchicalTupleKeyComparator( Evaluator e, Calc calc, int arity ) {
     super( e, calc, arity );
   }
 
-  public int compare( List<Member> a1, List<Member> a2 ) {
+  @Override protected int nonEqualCompare( List<Member> a1, List<Member> a2 ) {
     OrderKey k1 = (OrderKey) eval( a1 );
     OrderKey k2 = (OrderKey) eval( a2 );
     return compareMemberOrderKeysHierarchically( k1, k2 );

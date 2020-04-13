@@ -16,7 +16,6 @@ import mondrian.calc.TupleIterable;
 import mondrian.calc.TupleList;
 import mondrian.olap.Evaluator;
 import mondrian.olap.Exp;
-import mondrian.olap.fun.sort.Sorter;
 import mondrian.olap.type.SetType;
 
 /**
@@ -33,7 +32,6 @@ public abstract class AbstractListCalc
   extends AbstractCalc
   implements ListCalc {
   private final boolean mutable;
-  protected final Sorter sorter = new Sorter();
 
   /**
    * Creates an abstract implementation of a compiled expression which returns a mutable list of tuples.

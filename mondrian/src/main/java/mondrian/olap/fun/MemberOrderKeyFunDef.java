@@ -9,7 +9,9 @@
 
 package mondrian.olap.fun;
 
-import mondrian.calc.*;
+import mondrian.calc.Calc;
+import mondrian.calc.ExpCompiler;
+import mondrian.calc.MemberCalc;
 import mondrian.calc.impl.AbstractCalc;
 import mondrian.mdx.ResolvedFunCall;
 import mondrian.olap.Evaluator;
@@ -47,7 +49,7 @@ public final class MemberOrderKeyFunDef extends FunDefBase {
     private final MemberCalc memberCalc;
 
     /**
-     * Creates a CalcImpl.
+     * Creates a Calc
      *
      * @param exp        Source expression
      * @param memberCalc Compiled expression to calculate member

@@ -52,7 +52,6 @@ import mondrian.olap.SchemaReader;
 import mondrian.olap.Util;
 import mondrian.olap.fun.AbstractAggregateFunDef;
 import mondrian.olap.fun.AggregateFunDef;
-import mondrian.olap.fun.FunUtil;
 import mondrian.olap.fun.MondrianEvaluationException;
 import mondrian.olap.fun.VisualTotalsFunDef.VisualTotalMember;
 import mondrian.olap.fun.sort.Sorter;

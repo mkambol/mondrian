@@ -30,6 +30,7 @@ import mondrian.olap.Level;
 import mondrian.olap.Member;
 import mondrian.olap.NativeEvaluator;
 import mondrian.olap.SchemaReader;
+import mondrian.olap.fun.sort.Sorter;
 import mondrian.olap.type.ScalarType;
 
 import java.util.ArrayList;
@@ -148,7 +149,7 @@ class DrilldownLevelTopBottomFunDef extends FunDefBase {
           try {
             evaluator.setNonEmpty( false );
             sortedChildren =
-              sorter.sortMembers(
+              Sorter.sortMembers(
                 evaluator,
                 children,
                 children,

@@ -58,7 +58,6 @@ import mondrian.server.Execution;
 import mondrian.util.CancellationChecker;
 import mondrian.util.ConcatenableList;
 import mondrian.util.IdentifierParser;
-import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,13 +77,8 @@ import static mondrian.olap.fun.sort.Sorter.hierarchizeTupleList;
  * @since 1.0
  */
 public class FunUtil extends Util {
-  private static final Logger LOGGER =
-    Logger.getLogger( FunUtil.class );
-  private static final String SORT_TIMING_NAME = "Sort";
-  private static final String SORT_EVAL_TIMING_NAME = "EvalForSort";
 
   static final String[] emptyStringArray = new String[ 0 ];
-  private static final boolean debug = false;
   public static final NullMember NullMember = new NullMember();
 
   /**

@@ -29,6 +29,7 @@ import mondrian.olap.Hierarchy;
 import mondrian.olap.Member;
 import mondrian.olap.NativeEvaluator;
 import mondrian.olap.SchemaReader;
+import mondrian.olap.fun.sort.Sorter;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -157,7 +158,7 @@ class TopBottomCountFunDef extends FunDefBase {
           switch ( list.getArity() ) {
             case 1:
               final List<Member> members =
-                sorter.partiallySortMembers(
+                Sorter.partiallySortMembers(
                   evaluator.push(),
                   list.slice( 0 ),
                   orderCalc, n, top );

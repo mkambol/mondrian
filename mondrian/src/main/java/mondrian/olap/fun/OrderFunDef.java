@@ -21,6 +21,7 @@ import mondrian.calc.TupleIterable;
 import mondrian.calc.TupleList;
 import mondrian.calc.impl.AbstractCalc;
 import mondrian.calc.impl.AbstractListCalc;
+import mondrian.calc.impl.ArrayTupleList;
 import mondrian.calc.impl.ConstantCalc;
 import mondrian.calc.impl.GenericIterCalc;
 import mondrian.calc.impl.MemberArrayValueCalc;
@@ -38,6 +39,7 @@ import mondrian.olap.Syntax;
 import mondrian.olap.Util;
 import mondrian.olap.Validator;
 import mondrian.olap.fun.sort.SortKeySpec;
+import mondrian.olap.fun.sort.Sorter;
 import mondrian.olap.fun.sort.Sorter.Flag;
 
 import java.util.ArrayList;
@@ -71,6 +73,7 @@ class OrderFunDef extends FunDefBase {
     final Calc expCalc = keySpecList.get( 0 ).getKey();
     calcList[ 1 ] = expCalc;
     if ( keySpecCount == 1 ) {
+
       if ( expCalc.isWrapperFor( MemberValueCalc.class )
         || expCalc.isWrapperFor( MemberArrayValueCalc.class ) ) {
         List<MemberCalc> constantList = new ArrayList<>();
@@ -181,41 +184,11 @@ class OrderFunDef extends FunDefBase {
       // REVIEW: If iterable happens to be a list, we'd like to pass it,
       // but we cannot yet guarantee that it is mutable.
       final TupleList list =
-        iterable instanceof TupleList && false
+        iterable instanceof ArrayTupleList && false
           ? (TupleList) iterable
           : null;
       Util.discard( iterCalc.getResultStyle() );
-      Flag sortKeyDir = keySpecList.get( 0 ).getDirection();
-      final TupleList tupleList;
-      final int savepoint = subEvaluator.savepoint();
-      try {
-        subEvaluator.setNonEmpty( false );
-        if ( arity == 1 ) {
-          tupleList =
-            new UnaryTupleList(
-              sorter.sortMembers(
-                subEvaluator,
-                iterable.slice( 0 ),
-                list == null
-                  ? null
-                  : list.slice( 0 ),
-                sortKeyCalc,
-                sortKeyDir.descending,
-                sortKeyDir.brk ) );
-        } else {
-          tupleList = sorter.sortTuples(
-            subEvaluator,
-            iterable,
-            list,
-            sortKeyCalc,
-            sortKeyDir.descending,
-            sortKeyDir.brk,
-            arity );
-        }
-        return tupleList;
-      } finally {
-        subEvaluator.restore( savepoint );
-      }
+      return handleSortWithOneKeySpec( subEvaluator, iterable, list );
     }
 
     public TupleList evaluateList( Evaluator evaluator ) {
@@ -224,41 +197,12 @@ class OrderFunDef extends FunDefBase {
       // REVIEW: If iterable happens to be a list, we'd like to pass it,
       // but we cannot yet guarantee that it is mutable.
       final TupleList list =
-        iterable instanceof TupleList && false
+        iterable instanceof ArrayTupleList && false
           ? (TupleList) iterable
           : null;
       // go by size of keySpecList before purging
       if ( originalKeySpecCount == 1 ) {
-        Flag sortKeyDir = keySpecList.get( 0 ).getDirection();
-        final TupleList tupleList;
-        final int savepoint = evaluator.savepoint();
-        try {
-          evaluator.setNonEmpty( false );
-          if ( arity == 1 ) {
-            tupleList =
-              new UnaryTupleList(
-                sorter.sortMembers(
-                  evaluator,
-                  iterable.slice( 0 ),
-                  list == null ? null : list.slice( 0 ),
-                  sortKeyCalc,
-                  sortKeyDir.descending,
-                  sortKeyDir.brk ) );
-          } else {
-            tupleList =
-              sorter.sortTuples(
-                evaluator,
-                iterable,
-                list,
-                sortKeyCalc,
-                sortKeyDir.descending,
-                sortKeyDir.brk,
-                arity );
-          }
-          return tupleList;
-        } finally {
-          evaluator.restore( savepoint );
-        }
+        return handleSortWithOneKeySpec( evaluator, iterable, list );
       } else {
         purgeKeySpecList( keySpecList, list );
         if ( keySpecList.isEmpty() ) {
@@ -271,14 +215,14 @@ class OrderFunDef extends FunDefBase {
           if ( arity == 1 ) {
             tupleList =
               new UnaryTupleList(
-                sorter.sortMembers(
+                Sorter.sortMembers(
                   evaluator,
                   iterable.slice( 0 ),
                   list == null ? null : list.slice( 0 ),
                   keySpecList ) );
           } else {
             tupleList =
-              sorter.sortTuples(
+              Sorter.sortTuples(
                 evaluator,
                 iterable,
                 list,
@@ -292,7 +236,40 @@ class OrderFunDef extends FunDefBase {
       }
     }
 
-    public void collectArguments( Map<String, Object> arguments ) {
+    private TupleList handleSortWithOneKeySpec( Evaluator evaluator, TupleIterable iterable, TupleList list ) {
+      Flag sortKeyDir = keySpecList.get( 0 ).getDirection();
+      final TupleList tupleList;
+      final int savepoint = evaluator.savepoint();
+      try {
+        evaluator.setNonEmpty( false );
+        if ( arity == 1 ) {
+          tupleList =
+            new UnaryTupleList(
+              Sorter.sortMembers(
+                evaluator,
+                iterable.slice( 0 ),
+                list == null ? null : list.slice( 0 ),
+                sortKeyCalc,
+                sortKeyDir.descending,
+                sortKeyDir.brk ) );
+        } else {
+          tupleList =
+            Sorter.sortTuples(
+              evaluator,
+              iterable,
+              list,
+              sortKeyCalc,
+              sortKeyDir.descending,
+              sortKeyDir.brk,
+              arity );
+        }
+        return tupleList;
+      } finally {
+        evaluator.restore( savepoint );
+      }
+    }
+
+    @Override public void collectArguments( Map<String, Object> arguments ) {
       super.collectArguments( arguments );
 
       // only good for original Order syntax

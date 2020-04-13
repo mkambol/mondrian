@@ -7,8 +7,7 @@ import mondrian.olap.Util;
 
 import java.util.List;
 
-class HierarchicalTupleComparator
-  extends TupleComparator.TupleExpComparator {
+class HierarchicalTupleComparator extends TupleExpMemoComparator {
   private final boolean desc;
 
   HierarchicalTupleComparator(
@@ -17,7 +16,7 @@ class HierarchicalTupleComparator
     this.desc = desc;
   }
 
-  public int compare( List<Member> a1, List<Member> a2 ) {
+  @Override public int nonEqualCompare( List<Member> a1, List<Member> a2 ) {
     int c = 0;
     final int savepoint = evaluator.savepoint();
     try {
